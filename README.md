@@ -15,6 +15,15 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 -   **Backup Management**: Download, restore, or delete backups securely.
 -   **Status Dashboard**: Visual history of recent backup statuses.
 
+
+## Quick Install
+
+Get up and running in minutes with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh | bash
+```
+
 ## Installation
 
 ### Requirements
@@ -72,9 +81,9 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 3.  Run:
     ```bash
     docker compose up -d --build
-    docker compose exec app php artisan migrate
     ```
-7.  Visit `http://localhost:8088`.
+    *Note: Database migrations will run automatically on startup.*
+4.  Visit `http://localhost:8088`.
 
 ## Backup Flow
 
@@ -82,7 +91,7 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 2.  **Configure**: Enter your database connection details and choose a frequency.
     *   *Tip: Use the "Test Connection" button to verify credentials.*
 3.  **Wait or Run**: The scheduler will run the backup automatically. You can verify the status on the dashboard.
-4.  **Destination**: Backups are stored locally in `storage/app/backups` by default.
+4.  **Destination**: Backups are stored locally. You can specify a custom folder when creating the schedule, or default to `backups`.
 
 ## Restore Safety Rules
 
@@ -97,6 +106,17 @@ Restoring a database is a destructive action. SnapsQL prioritizes safety:
 Enable Discord notifications in your **Profile & Notifications** settings to receive:
 -   **Green Alerts**: Verification tests.
 -   **Red Alerts**: Immediate notification if a backup job fails, including the error message.
+
+
+## Troubleshooting
+
+### "The MAC is invalid"
+This error occurs if your encryption key (`APP_KEY`) changes or if your Docker containers are not sharing the same `.env` file.
+-   Ensure `.env` is mounted in `docker-compose.yml`.
+-   If you lost your key, you may need to re-save your database schedules (re-enter passwords).
+
+### "SSL is required but the server does not support it"
+SnapsQL is configured to skip SSL for internal Docker connections to avoid this error during backup/restore. If you encounter this, rebuild your container.
 
 ## Contributing
 
