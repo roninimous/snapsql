@@ -20,7 +20,25 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 // Protected routes
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        $databases = [
+            [
+                'name' => 'Primary Database',
+                'last_backup' => '2025-12-15 14:30',
+                'status' => 'success',
+            ],
+            [
+                'name' => 'Analytics Warehouse',
+                'last_backup' => '2025-12-14 09:10',
+                'status' => 'failed',
+            ],
+            [
+                'name' => 'Staging',
+                'last_backup' => null,
+                'status' => 'pending',
+            ],
+        ];
+
+        return view('dashboard', compact('databases'));
     })->name('dashboard');
 });
 

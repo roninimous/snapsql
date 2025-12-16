@@ -27,13 +27,29 @@
             background-color: #220e27;
             border-color: #220e27;
         }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-success {
+            background-color: #16a34a;
+        }
+        .status-failed {
+            background-color: #dc3545;
+        }
+        .status-pending {
+            background-color: #f59e0b;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="{{ asset('logo-square-transparent-light-mode.png') }}" alt="SnapsQL" width="30" height="30" class="d-inline-block align-text-top me-2">
+                <img src="{{ asset('logo-square-transparent.png') }}" alt="SnapsQL"  height="30" class="d-inline-block align-text-top me-2">
                 SnapsQL
             </a>
             <div class="d-flex align-items-center">
@@ -58,13 +74,56 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Dashboard</h5>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Dashboard</h5>
+                            <button type="button" class="btn btn-light btn-sm text-primary fw-semibold">
+                                Create DB Snapshot
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <h4>Welcome to SnapsQL!</h4>
-                        <p class="text-muted">Your database snapshot and restore tool.</p>
-                        <hr>
-                        <p>This is your dashboard. Database snapshot and restore features will be added here.</p>
+                        <h5 class="mb-3">Databases</h5>
+
+                        @if (empty($databases))
+                            <div class="alert alert-secondary mb-0">
+                                No databases yet. Add a database to start creating snapshots.
+                            </div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Name</th>
+                                            <th scope="col">Last Backup</th>
+                                            <th scope="col">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($databases as $database)
+                                            @php
+                                                $status = $database['status'];
+                                                $statusClass = match ($status) {
+                                                    'success' => 'status-success',
+                                                    'failed' => 'status-failed',
+                                                    default => 'status-pending',
+                                                };
+                                                $statusLabel = ucfirst($status);
+                                            @endphp
+                                            <tr>
+                                                <td class="fw-semibold">{{ $database['name'] }}</td>
+                                                <td class="text-muted">
+                                                    {{ $database['last_backup'] ?? 'No backups yet' }}
+                                                </td>
+                                                <td>
+                                                    <span class="status-dot {{ $statusClass }}"></span>
+                                                    <span class="fw-semibold">{{ $statusLabel }}</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
