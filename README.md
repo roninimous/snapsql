@@ -74,7 +74,7 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
     docker compose up -d --build
     docker compose exec app php artisan migrate
     ```
-4.  Visit `http://localhost:8080`.
+7.  Visit `http://localhost:8088`.
 
 ## Backup Flow
 
