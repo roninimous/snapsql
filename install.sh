@@ -6,6 +6,12 @@ set -e
 
 echo "🚀 Starting SnapsQL Installation..."
 
+# Check if running as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "❌ This script must be run as root. Please try again with 'sudo'."
+    exit 1
+fi
+
 # Check for Docker
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker is not installed. Please install Docker and try again."
