@@ -12,7 +12,7 @@ class SetupController extends Controller
     public function show()
     {
         if (User::exists()) {
-            return redirect('/');
+            return redirect()->route('login');
         }
 
         return view('setup');
@@ -21,7 +21,7 @@ class SetupController extends Controller
     public function store(Request $request)
     {
         if (User::exists()) {
-            return redirect('/');
+            return redirect()->route('login');
         }
 
         $validated = $request->validate([
@@ -30,14 +30,12 @@ class SetupController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = User::create([
+        User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
 
-        auth()->login($user);
-
-        return redirect('/')->with('success', 'Admin account created successfully.');
+        return redirect()->route('login')->with('success', 'Admin account created successfully. Please sign in.');
     }
 }
