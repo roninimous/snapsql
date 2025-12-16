@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Backup;
 use App\Models\Database;
+use App\Services\BackupDestinationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\File;
@@ -150,128 +151,7 @@ class CreateDatabaseBackup implements ShouldQueue
             return;
         }
 
-        match ($destination->type) {
-            's3' => $this->uploadToS3($destination, $tempFile, $backup->filename),
-            'ftp' => $this->uploadToFtp($destination, $tempFile, $backup->filename),
-            'sftp' => $this->uploadToSftp($destination, $tempFile, $backup->filename),
-            default => Log::warning("Unknown backup destination type: {$destination->type}"),
-        };
-    }
-
-    /**
-     * Upload to S3.
-     */
-    private function uploadToS3($destination, string $tempFile, string $filename): void
-    {
-        $credentials = $destination->credentials;
-
-        if (empty($credentials)) {
-            throw new \RuntimeException('S3 credentials not configured');
-        }
-
-        $s3Path = rtrim($destination->path, '/').'/'.$filename;
-
-        $s3Disk = Storage::build([
-            'driver' => 's3',
-            'key' => $credentials['key'] ?? null,
-            'secret' => $credentials['secret'] ?? null,
-            'region' => $credentials['region'] ?? 'us-east-1',
-            'bucket' => $credentials['bucket'] ?? null,
-            'url' => $credentials['url'] ?? null,
-            'endpoint' => $credentials['endpoint'] ?? null,
-            'use_path_style_endpoint' => $credentials['use_path_style_endpoint'] ?? false,
-        ]);
-
-        $s3Disk->put($s3Path, File::get($tempFile));
-    }
-
-    /**
-     * Upload to FTP.
-     */
-    private function uploadToFtp($destination, string $tempFile, string $filename): void
-    {
-        if (! extension_loaded('ftp')) {
-            throw new \RuntimeException('FTP extension is not installed');
-        }
-
-        $credentials = $destination->credentials;
-
-        if (empty($credentials)) {
-            throw new \RuntimeException('FTP credentials not configured');
-        }
-
-        $ftpPath = rtrim($destination->path, '/').'/'.$filename;
-
-        $connection = @ftp_connect($credentials['host'] ?? 'localhost', $credentials['port'] ?? 21);
-
-        if (! $connection) {
-            throw new \RuntimeException('Failed to connect to FTP server');
-        }
-
-        try {
-            if (! @ftp_login($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
-                throw new \RuntimeException('FTP authentication failed');
-            }
-
-            if (isset($credentials['passive']) && $credentials['passive']) {
-                @ftp_pasv($connection, true);
-            }
-
-            if (! @ftp_put($connection, $ftpPath, $tempFile, FTP_BINARY)) {
-                throw new \RuntimeException('Failed to upload file to FTP server');
-            }
-        } finally {
-            @ftp_close($connection);
-        }
-    }
-
-    /**
-     * Upload to SFTP.
-     */
-    private function uploadToSftp($destination, string $tempFile, string $filename): void
-    {
-        if (! extension_loaded('ssh2')) {
-            throw new \RuntimeException('SSH2 extension is not installed');
-        }
-
-        $credentials = $destination->credentials;
-
-        if (empty($credentials)) {
-            throw new \RuntimeException('SFTP credentials not configured');
-        }
-
-        $sftpPath = rtrim($destination->path, '/').'/'.$filename;
-
-        $connection = @ssh2_connect($credentials['host'] ?? 'localhost', $credentials['port'] ?? 22);
-
-        if (! $connection) {
-            throw new \RuntimeException('Failed to connect to SFTP server');
-        }
-
-        if (! @ssh2_auth_password($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
-            throw new \RuntimeException('SFTP authentication failed');
-        }
-
-        $sftp = @ssh2_sftp($connection);
-
-        if (! $sftp) {
-            throw new \RuntimeException('Failed to initialize SFTP subsystem');
-        }
-
-        $stream = @fopen("ssh2.sftp://{$sftp}{$sftpPath}", 'w');
-
-        if (! $stream) {
-            throw new \RuntimeException('Failed to open SFTP file stream');
-        }
-
-        try {
-            $fileContents = File::get($tempFile);
-
-            if (@fwrite($stream, $fileContents) === false) {
-                throw new \RuntimeException('Failed to write file to SFTP server');
-            }
-        } finally {
-            @fclose($stream);
-        }
+        $service = app(BackupDestinationService::class);
+        $service->upload($destination, $tempFile, $backup->filename);
     }
 }
