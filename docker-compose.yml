@@ -71,6 +71,7 @@ services:
     volumes:
       - ./storage:/var/www/html/storage
       - ./bootstrap/cache:/var/www/html/bootstrap/cache
+      - ./.env:/var/www/html/.env
     depends_on:
       internal-db:
         condition: service_healthy
