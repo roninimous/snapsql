@@ -8,6 +8,7 @@ use App\Services\BackupDestinationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -198,5 +199,53 @@ class CreateDatabaseBackup implements ShouldQueue
 
         $service = app(BackupDestinationService::class);
         $service->upload($destination, $tempFile, $backup->filename);
+    }
+
+    /**
+     * Send Discord failure notification.
+     */
+    private function sendFailureNotification(string $errorMessage): void
+    {
+        $user = $this->database->user;
+        $webhookUrl = $user->discord_webhook_url;
+
+        if (!$webhookUrl) {
+            return;
+        }
+
+        try {
+            Http::post($webhookUrl, [
+                'username' => 'SnapsQL',
+                'avatar_url' => 'https://roninimous.b-cdn.net/snapsql/discord-avatar.png',
+                'embeds' => [
+                    [
+                        'title' => 'Backup Failed',
+                        'description' => "Backup for **{$this->database->name}** has failed.",
+                        'color' => 15548997, // Red
+                        'fields' => [
+                            [
+                                'name' => 'Database',
+                                'value' => $this->database->database,
+                                'inline' => true,
+                            ],
+                            [
+                                'name' => 'Time',
+                                'value' => now()->toDateTimeString(),
+                                'inline' => true,
+                            ],
+                            [
+                                'name' => 'Error',
+                                'value' => $errorMessage,
+                            ],
+                        ],
+                        'footer' => [
+                            'text' => 'SnapsQL Alert',
+                        ],
+                    ]
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send Discord notification: ' . $e->getMessage());
+        }
     }
 }

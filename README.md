@@ -1,95 +1,107 @@
 # SnapsQL
 
-A simple database snapshot and restore tool built with Laravel.
+A robust, self-hosted database backup and restore manager built with Laravel. SnapsQL automates your database backups, provides distinct restore safety checks, and integrates with Discord for real-time notifications.
 
-## Purpose
+![SnapsQL Dashboard](public/logo-square-transparent.png)
 
-SnapsQL allows you to capture database snapshots and restore them later. It's designed for development environments where you need to quickly save and restore database states.
+## Features
 
-**Note:** This is a basic tool focused on core snapshot/restore functionality. No advanced features.
-
-## Requirements
-
-- Docker & Docker Compose
-- Git
+-   **Automated Scheduling**: Schedule hourly, daily, weekly, or custom interval backups.
+-   **Safe Restore Flow**: 
+    -   **Safety Backups**: Automatically creates a backup of the current state before restoring.
+    -   **Schema Comparison**: Warns you if the backup schema differs from the live database.
+    -   **Confirmation**: Requires typing the database name to confirm destructive actions.
+-   **Discord Notifications**: Get beautiful, embedded alerts for successful tests and backup failures.
+-   **Backup Management**: Download, restore, or delete backups securely.
+-   **Status Dashboard**: Visual history of recent backup statuses.
 
 ## Installation
 
-### Docker Setup (Recommended)
+### Requirements
+-   PHP 8.2+
+-   Composer
+-   Node.js & NPM
+-   MySQL/MariaDB Client (`mysqldump`)
+-   Redis (optional, for queues)
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd SnapsQL
-```
+### Manual Setup
 
-2. Copy the environment file:
-```bash
-cp .env.example .env
-```
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/roninimous/snapsql.git
+    cd snapsql
+    ```
 
-3. Update `.env` with your APP_KEY (or generate after build):
-```bash
-# Generate a key: base64:YOUR_32_CHAR_KEY_HERE
-```
+2.  **Install Dependencies**:
+    ```bash
+    composer install
+    npm install && npm run build
+    ```
 
-4. Build and start Docker containers:
-```bash
-docker compose up -d --build
-```
+3.  **Environment Setup**:
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+    *Configure your database connection in `.env`.*
 
-5. Generate application key (if not set):
-```bash
-docker compose exec app php artisan key:generate
-```
+4.  **Database Migration**:
+    ```bash
+    php artisan migrate
+    ```
 
-6. Run migrations:
-```bash
-docker compose exec app php artisan migrate
-```
+5.  **Run Application**:
+    ```bash
+    # Terminal 1: Web Server
+    php artisan serve
 
-7. Visit `http://localhost:8080` and complete the first-run setup by creating an admin account.
+    # Terminal 2: Queue Worker (Required for backups)
+    php artisan queue:work
 
-### Docker Services
+    # Terminal 3: Scheduler (Required for automated backups)
+    php artisan schedule:work
+    ```
 
-- **app**: Web server (Apache + PHP 8.3) - accessible on port 8080
-- **worker**: Queue worker for background jobs
-- **scheduler**: Laravel task scheduler
-- **internal-db**: MySQL 8 database
+6.  **First Login**:
+    Visit `http://localhost:8000`. You will be prompted to create an admin account.
 
-### Useful Commands
+### Docker Setup
 
-```bash
-# View logs
-docker compose logs -f app
+1.  Clone the repo.
+2.  Copy `.env.example` to `.env`.
+3.  Run:
+    ```bash
+    docker compose up -d --build
+    docker compose exec app php artisan migrate
+    ```
+4.  Visit `http://localhost:8080`.
 
-# Access application container
-docker compose exec app bash
+## Backup Flow
 
-# Run artisan commands
-docker compose exec app php artisan [command]
+1.  **Create Schedule**: Go to the dashboard and click "Create DB Snapshot Schedule".
+2.  **Configure**: Enter your database connection details and choose a frequency.
+    *   *Tip: Use the "Test Connection" button to verify credentials.*
+3.  **Wait or Run**: The scheduler will run the backup automatically. You can verify the status on the dashboard.
+4.  **Destination**: Backups are stored locally in `storage/app/backups` by default.
 
-# Stop all services
-docker compose down
+## Restore Safety Rules
 
-# Stop and remove volumes (⚠️ deletes database)
-docker compose down -v
-```
+Restoring a database is a destructive action. SnapsQL prioritizes safety:
 
-## First Run
+1.  **Pre-Restore Safety Backup**: By default, SnapsQL creates a "safety backup" of your current database state before applying the restore. This ensures you can undo if something goes wrong.
+2.  **Schema Compatibility Check**: The system analyzes the SQL dump structure and compares it with your live database. If they don't match (e.g., missing tables, column mismatches), you will be warned.
+3.  **Explicit Confirmation**: You must type the database name to confirm the restore.
 
-On first access, you'll be prompted to create an admin account. This is a **required step** - the application will not be accessible until the admin account is created.
+## Notifications
 
-The application is designed for **single-user usage** only.
+Enable Discord notifications in your **Profile & Notifications** settings to receive:
+-   **Green Alerts**: Verification tests.
+-   **Red Alerts**: Immediate notification if a backup job fails, including the error message.
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started.
 
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
-
-See the [LICENSE](LICENSE) file for details.
-
-## AGPL-3.0 Notice
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-If you modify this program and make it available over a network, you must make the modified source code available to users.
+Licensed under the [AGPL-3.0](LICENSE).
