@@ -96,6 +96,20 @@
                     </div>
                 </div>
 
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+                
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
                 <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0">Backup Versions</h5>
@@ -147,6 +161,9 @@
                                                         <a href="{{ route('backups.download', $backup->id) }}" class="btn btn-sm btn-outline-primary">
                                                             Download
                                                         </a>
+                                                        <a href="{{ route('backups.restore', $backup->id) }}" class="btn btn-sm btn-outline-danger ms-1">
+                                                            Restore
+                                                        </a>
                                                     @elseif ($backup->status === 'failed' && $backup->error_message)
                                                         <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $backup->error_message }}">
                                                             View Error
@@ -154,8 +171,39 @@
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
-                                                </td>
-                                            </tr>
+                                                    
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1" data-bs-toggle="modal" data-bs-target="#deleteBackupModal{{ $backup->id }}" title="Delete Backup">
+                                                        🗑️
+                                                    </button>
+
+                                                    <!-- Delete Backup Modal -->
+                                                    <div class="modal fade" id="deleteBackupModal{{ $backup->id }}" tabindex="-1" aria-labelledby="deleteBackupModalLabel{{ $backup->id }}" aria-hidden="true">
+                                                        <div class="modal-dialog">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title" id="deleteBackupModalLabel{{ $backup->id }}">Delete Backup</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+                                                                <form action="{{ route('backups.destroy', $backup->id) }}" method="POST">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <div class="modal-body">
+                                                                        <p>Are you sure you want to delete the backup <strong>{{ $backup->filename }}</strong>?</p>
+                                                                        <p class="text-danger mb-3">This action cannot be undone.</p>
+                                                                        
+                                                                        <div class="mb-3">
+                                                                            <label for="confirmation{{ $backup->id }}" class="form-label">Type <strong>DELETE</strong> to confirm:</label>
+                                                                            <input type="text" class="form-control delete-confirmation-input" id="confirmation{{ $backup->id }}" name="confirmation" required>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                        <button type="submit" class="btn btn-danger delete-submit-btn" disabled>Delete Backup</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                         @endforeach
                                     </tbody>
                                 </table>
@@ -204,6 +252,24 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Delete Backup Confirmation Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteInputs = document.querySelectorAll('.delete-confirmation-input');
+            
+            deleteInputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const modalContent = this.closest('.modal-content');
+                    const submitBtn = modalContent.querySelector('.delete-submit-btn');
+                    
+                    if (this.value === 'DELETE') {
+                        submitBtn.disabled = false;
+                    } else {
+                        submitBtn.disabled = true;
+                    }
+                });
+            });
         });
     </script>
 </body>

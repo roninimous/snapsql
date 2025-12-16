@@ -28,6 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/databases/{database}', [DatabaseController::class, 'show'])->name('databases.show');
     Route::delete('/databases/{database}', [DatabaseController::class, 'destroy'])->name('databases.destroy');
     Route::get('/backups/{backup}/download', [DatabaseController::class, 'download'])->name('backups.download');
+    Route::get('/backups/{backup}/restore', [DatabaseController::class, 'restore'])->name('backups.restore');
+    Route::post('/backups/{backup}/restore', [DatabaseController::class, 'processRestore'])->name('backups.process-restore');
+    Route::delete('/backups/{backup}', [DatabaseController::class, 'destroyBackup'])->name('backups.destroy');
 });
 
 // Root redirect

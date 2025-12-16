@@ -21,7 +21,8 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     public function __construct(
         public Database $database
-    ) {}
+    ) {
+    }
 
     /**
      * Execute the job.
@@ -40,7 +41,7 @@ class CreateDatabaseBackup implements ShouldQueue
         try {
             $tempFile = $this->createDump($backup);
 
-            if (! File::exists($tempFile)) {
+            if (!File::exists($tempFile)) {
                 throw new \RuntimeException('Dump file was not created');
             }
 
@@ -84,11 +85,11 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     private function createDump(Backup $backup): string
     {
-        $tempFile = sys_get_temp_dir().'/snapsql_backup_'.uniqid().'.sql';
+        $tempFile = sys_get_temp_dir() . '/snapsql_backup_' . uniqid() . '.sql';
 
         $mysqldumpPath = $this->findMysqldump();
 
-        if (! $mysqldumpPath) {
+        if (!$mysqldumpPath) {
             throw new \RuntimeException('mysqldump command not found. Please install mysql-client or mariadb-client package.');
         }
 
@@ -102,17 +103,17 @@ class CreateDatabaseBackup implements ShouldQueue
             '--skip-events',
             '--add-drop-table',
             '--no-tablespaces',
-            '--host='.$this->database->host,
-            '--port='.$this->database->port,
-            '--user='.$this->database->username,
-            '--password='.($this->database->password ?? ''),
+            '--host=' . $this->database->host,
+            '--port=' . $this->database->port,
+            '--user=' . $this->database->username,
+            '--password=' . ($this->database->password ?? ''),
             $this->database->database,
         ];
 
         $result = Process::run($command);
 
-        if (! $result->successful()) {
-            throw new \RuntimeException('mysqldump failed: '.$result->errorOutput());
+        if (!$result->successful()) {
+            throw new \RuntimeException('mysqldump failed: ' . $result->errorOutput());
         }
 
         File::put($tempFile, $result->output());
@@ -135,6 +136,7 @@ class CreateDatabaseBackup implements ShouldQueue
             '/usr/bin/mysqldump',
             '/usr/local/bin/mysqldump',
             '/bin/mysqldump',
+            '/opt/homebrew/bin/mysqldump', // Homebrew on Mac
         ];
 
         foreach ($commonPaths as $path) {
@@ -147,7 +149,7 @@ class CreateDatabaseBackup implements ShouldQueue
 
         if ($whichResult->successful()) {
             $path = trim($whichResult->output());
-            if (! empty($path) && file_exists($path)) {
+            if (!empty($path) && file_exists($path)) {
                 return $path;
             }
         }
@@ -184,7 +186,7 @@ class CreateDatabaseBackup implements ShouldQueue
     {
         $destination = $this->database->backupDestination;
 
-        if (! $destination || ! $destination->is_active) {
+        if (!$destination || !$destination->is_active) {
             return;
         }
 

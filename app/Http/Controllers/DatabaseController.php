@@ -13,6 +13,10 @@ use Illuminate\View\View;
 use PDO;
 use PDOException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Jobs\CreateDatabaseBackup;
+use App\Jobs\RestoreDatabase;
+use App\Services\SchemaComparisonService;
+use Illuminate\Http\Request;
 
 class DatabaseController extends Controller
 {
@@ -135,6 +139,88 @@ class DatabaseController extends Controller
         }
 
         return Storage::disk('local')->download($backup->file_path, $backup->filename);
+    }
+
+    public function restore(Backup $backup, SchemaComparisonService $schemaService): View
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($backup->database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        // Perform schema compatibility check
+        $comparison = $schemaService->compare($backup->database, $backup->file_path);
+
+        return view('databases.restore.confirm', compact('backup', 'comparison'));
+    }
+
+    public function processRestore(Backup $backup, Request $request): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($backup->database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'backup_current' => ['nullable', 'boolean'],
+            'db_name_confirmation' => ['required', 'string', 'in:' . $backup->database->database],
+        ], [
+            'db_name_confirmation.in' => 'The database name confirmation does not match.',
+        ]);
+
+        try {
+            // Safety: Backup current state if requested
+            if ($request->boolean('backup_current')) {
+                // We run this synchronously to ensure it exists before we kill the DB
+                CreateDatabaseBackup::dispatchSync($backup->database);
+            }
+
+            // Restore logic
+            RestoreDatabase::dispatchSync($backup);
+
+            return redirect()
+                ->route('databases.show', $backup->database)
+                ->with('success', 'Database restored successfully.');
+
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Restore failed', [
+                'backup_id' => $backup->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->withErrors(['restore' => 'Restore failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroyBackup(Backup $backup, Request $request): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($backup->database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'confirmation' => ['required', 'string', 'in:DELETE'],
+        ], [
+            'confirmation.in' => 'Please type "DELETE" to confirm deletion.',
+        ]);
+
+        if ($backup->file_path && Storage::disk('local')->exists($backup->file_path)) {
+            Storage::disk('local')->delete($backup->file_path);
+        }
+
+        $backup->delete();
+
+        return redirect()
+            ->route('databases.show', $backup->database)
+            ->with('success', 'Backup deleted successfully.');
     }
 
     public function create(): View
