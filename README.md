@@ -28,17 +28,17 @@ cd SnapsQL
 cp .env.example .env
 ```
 
-3. Start Docker containers:
+3. Update `.env` with your APP_KEY (or generate after build):
 ```bash
-docker compose up -d
+# Generate a key: base64:YOUR_32_CHAR_KEY_HERE
 ```
 
-4. Install dependencies:
+4. Build and start Docker containers:
 ```bash
-docker compose exec app composer install
+docker compose up -d --build
 ```
 
-5. Generate application key:
+5. Generate application key (if not set):
 ```bash
 docker compose exec app php artisan key:generate
 ```
@@ -48,7 +48,33 @@ docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 ```
 
-7. Visit `http://localhost` and complete the first-run setup by creating an admin account.
+7. Visit `http://localhost:8080` and complete the first-run setup by creating an admin account.
+
+### Docker Services
+
+- **app**: Web server (Apache + PHP 8.3) - accessible on port 8080
+- **worker**: Queue worker for background jobs
+- **scheduler**: Laravel task scheduler
+- **internal-db**: MySQL 8 database
+
+### Useful Commands
+
+```bash
+# View logs
+docker compose logs -f app
+
+# Access application container
+docker compose exec app bash
+
+# Run artisan commands
+docker compose exec app php artisan [command]
+
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (⚠️ deletes database)
+docker compose down -v
+```
 
 ## First Run
 
