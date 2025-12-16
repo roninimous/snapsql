@@ -90,7 +90,7 @@ class RestoreDatabase implements ShouldQueue
         // Best to use 'sh -c'.
 
         $command = sprintf(
-            '%s --host=%s --port=%s --user=%s --password=%s %s < %s',
+            '%s --host=%s --port=%s --user=%s --password=%s --skip-ssl %s < %s',
             escapeshellarg($mysqlPath),
             escapeshellarg($database->host),
             escapeshellarg($database->port),

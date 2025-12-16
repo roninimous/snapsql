@@ -177,7 +177,15 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     private function saveToLocalStorage(string $tempFile, string $filename): string
     {
-        $storagePath = "backups/{$this->database->id}/{$filename}";
+        $destination = $this->database->backupDestination;
+        $backupDir = ($destination && $destination->type === 'local' && !empty($destination->path))
+            ? $destination->path
+            : env('BACKUP_PATH', 'backups');
+
+        // Ensure we don't have double slashes if path ends with /
+        $backupDir = rtrim($backupDir, '/');
+
+        $storagePath = "{$backupDir}/{$this->database->id}/{$filename}";
         Storage::disk('local')->put($storagePath, File::get($tempFile));
 
         return $storagePath;
