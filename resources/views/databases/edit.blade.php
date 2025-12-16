@@ -42,22 +42,7 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="{{ asset('logo-square-transparent.png') }}" height="30"
-                    class="d-inline-block align-text-top me-2" alt="SnapsQL">
-                SnapsQL
-            </a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">{{ auth()->user()->name }}</span>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                </form>
-            </div>
-        </div>
-    </nav>
+    @include('partials.navbar')
 
     <div class="container my-5">
         <div class="row justify-content-center">
@@ -86,27 +71,27 @@
 
                             <p class="form-section-title mb-2">Database Connection</p>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label for="name" class="form-label">Display Name</label>
                                     <input type="text" id="name" name="name" class="form-control"
                                         value="{{ old('name', $database->name) }}" required>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-9">
                                     <label for="host" class="form-label">Host</label>
                                     <input type="text" id="host" name="host" class="form-control"
                                         value="{{ old('host', $database->host) }}" required>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="port" class="form-label">Port</label>
                                     <input type="number" id="port" name="port" class="form-control"
                                         value="{{ old('port', $database->port) }}" required>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-12">
                                     <label for="database" class="form-label">Database Name</label>
                                     <input type="text" id="database" name="database" class="form-control"
                                         value="{{ old('database', $database->database) }}" required>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <label for="username" class="form-label">Username</label>
                                     <input type="text" id="username" name="username" class="form-control"
                                         value="{{ old('username', $database->username) }}" required>
@@ -324,7 +309,7 @@
                         // But wait, if we disable it here, we should revert it to "enabled" (because if we clicked it, it WAS enabled/dirty)
                         // UNLESS the user undid changes while waiting? Unlikely.
                         // Safe to say if we are here, form is dirty.
-                        testBtn.disabled = false; 
+                        testBtn.disabled = false;
                         testBtn.innerText = originalText;
                     });
             });

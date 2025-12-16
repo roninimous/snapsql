@@ -85,22 +85,7 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="{{ asset('logo-square-transparent.png') }}" alt="SnapsQL" height="30"
-                    class="d-inline-block align-text-top me-2">
-                SnapsQL
-            </a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">{{ auth()->user()->name }}</span>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                </form>
-            </div>
-        </div>
-    </nav>
+    @include('partials.navbar')
 
     <div class="container mt-5">
         @if (session('success'))

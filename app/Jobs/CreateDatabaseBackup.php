@@ -73,6 +73,8 @@ class CreateDatabaseBackup implements ShouldQueue
                 'completed_at' => now(),
                 'error_message' => $e->getMessage(),
             ]);
+
+            $this->sendFailureNotification($e->getMessage());
         } finally {
             if ($tempFile && File::exists($tempFile)) {
                 File::delete($tempFile);

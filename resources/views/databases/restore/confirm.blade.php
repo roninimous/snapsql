@@ -31,18 +31,9 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-dark mb-5">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="{{ asset('logo-square-transparent.png') }}" height="30"
-                    class="d-inline-block align-text-top me-2" alt="SnapsQL">
-                SnapsQL
-            </a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">{{ auth()->user()->name }}</span>
-            </div>
-        </div>
-    </nav>
+    <div class="mb-5">
+        @include('partials.navbar')
+    </div>
 
     <div class="container">
         <div class="row justify-content-center">

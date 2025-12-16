@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DatabaseController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SetupController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +37,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/backups/{backup}/restore', [DatabaseController::class, 'restore'])->name('backups.restore');
     Route::post('/backups/{backup}/restore', [DatabaseController::class, 'processRestore'])->name('backups.process-restore');
     Route::delete('/backups/{backup}', [DatabaseController::class, 'destroyBackup'])->name('backups.destroy');
+    Route::delete('/backups/{backup}', [DatabaseController::class, 'destroyBackup'])->name('backups.destroy');
+
+    // Profile Routes
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+
+    // Notification Routes
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::put('/notifications', [NotificationController::class, 'update'])->name('notifications.update');
+    Route::post('/notifications/test-discord', [NotificationController::class, 'testDiscord'])->name('notifications.test-discord');
 });
 
 // Root redirect
