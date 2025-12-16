@@ -24,12 +24,35 @@ class DatabaseController extends Controller
         $databases = $user->databases()
             ->with([
                 'backups' => function ($query) {
-                    $query->latest('completed_at')->limit(1);
+                    $query->latest('completed_at');
                 }
             ])
             ->get()
             ->map(function ($database) {
                 $lastBackup = $database->backups->first();
+                // Get latest 20 backups. Collection is already ordered by latest 'completed_at' from the eager load.
+                $recentBackups = $database->backups->take(20);
+
+                // Create array of 20 statuses, padded with 'default'
+                // We want oldest to newest (left to right), so we reverse the latest backups
+                $history = $recentBackups->reverse()->values()->map(function ($backup) {
+                    return match ($backup->status) {
+                        'completed' => 'success',
+                        'failed' => 'failed',
+                        default => 'pending',
+                    };
+                })->toArray();
+
+                // Pad with 'default' (grey) for missing backups to always have 20 slots
+                // Padded at the beginning (left) if we want history to fill up from right?
+                // Visual requirement involved "shows the latest 8 backup status". 
+                // Usually "bars" imply a timeline. Let's pad left with 'default' so new ones appear on right.
+                // Actually user said "shows the latest 8 backup status". 
+                // If I have 1 backup: [default, default, ..., success]
+    
+                $paddedHistory = array_pad($history, -20, 'default');
+                // array_pad with negative size pads to the left.
+    
                 $status = 'pending';
 
                 if ($lastBackup) {
@@ -45,6 +68,7 @@ class DatabaseController extends Controller
                     'name' => $database->name,
                     'last_backup' => $lastBackup?->completed_at?->format('Y-m-d H:i') ?? null,
                     'status' => $status,
+                    'status_history' => $paddedHistory,
                 ];
             });
 
@@ -165,7 +189,25 @@ class DatabaseController extends Controller
 
         return redirect()
             ->route('dashboard')
-            ->with('success', 'Database saved and snapshot schedule configured.');
+            ->with('success', 'Database saved and schedule created.');
+    }
+
+    public function testConnection(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        // Only validate fields necessary for connection
+        $data = $request->validate([
+            'host' => ['required', 'string', 'max:255'],
+            'port' => ['required', 'integer', 'between:1,65535'],
+            'database' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($this->canConnectToDatabase($data)) {
+            return response()->json(['success' => true, 'message' => 'Connection successful!']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Unable to connect to the database.'], 422);
     }
 
     private function canConnectToDatabase(array $data): bool

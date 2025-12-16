@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DatabaseController::class, 'index'])->name('dashboard');
 
     Route::get('/databases/create', [DatabaseController::class, 'create'])->name('databases.create');
+    Route::post('/databases/test-connection', [DatabaseController::class, 'testConnection'])->name('databases.test-connection');
     Route::post('/databases', [DatabaseController::class, 'store'])->name('databases.store');
     Route::get('/databases/{database}', [DatabaseController::class, 'show'])->name('databases.show');
     Route::delete('/databases/{database}', [DatabaseController::class, 'destroy'])->name('databases.destroy');

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,29 +11,36 @@
         body {
             background-color: #f8f9fa;
         }
+
         .navbar {
             background-color: #331540 !important;
         }
-        .text-primary{
+
+        .text-primary {
             color: #331540 !important;
         }
+
         .bg-primary {
             background-color: #331540 !important;
         }
+
         .btn-primary {
             background-color: #331540;
             border-color: #331540;
             color: #ffffff;
         }
+
         .btn-primary:hover {
             background-color: #220e27;
             border-color: #220e27;
             color: #ffffff;
         }
+
         .btn-outline-light:hover {
             background-color: #220e27;
             border-color: #220e27;
         }
+
         .status-dot {
             width: 10px;
             height: 10px;
@@ -40,22 +48,48 @@
             display: inline-block;
             margin-right: 6px;
         }
+
         .status-success {
-            background-color: #16a34a;
+            background-color: #16a34a !important;
         }
+
         .status-failed {
-            background-color: #dc3545;
+            background-color: #dc3545 !important;
         }
+
         .status-pending {
-            background-color: #f59e0b;
+            background-color: #f59e0b !important;
+        }
+
+        .status-default {
+            background-color: #e9ecef !important;
+        }
+
+        .status-bar-container {
+            display: flex;
+            gap: 4px;
+        }
+
+        .status-bar {
+            width: 8px;
+            height: 24px;
+            border-radius: 2px;
+            background-color: #e9ecef;
+            display: inline-block;
+        }
+
+        .status-bar-tooltip {
+            cursor: pointer;
         }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="{{ asset('logo-square-transparent.png') }}" alt="SnapsQL"  height="30" class="d-inline-block align-text-top me-2">
+                <img src="{{ asset('logo-square-transparent.png') }}" alt="SnapsQL" height="30"
+                    class="d-inline-block align-text-top me-2">
                 SnapsQL
             </a>
             <div class="d-flex align-items-center">
@@ -82,7 +116,8 @@
                     <div class="card-header bg-primary text-white">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Dashboard</h5>
-                            <a href="{{ route('databases.create') }}" class="btn btn-light btn-sm text-primary fw-semibold">
+                            <a href="{{ route('databases.create') }}"
+                                class="btn btn-light btn-sm text-primary fw-semibold">
                                 Create DB Snapshot Schedule
                             </a>
                         </div>
@@ -117,7 +152,8 @@
                                             @endphp
                                             <tr>
                                                 <td class="fw-semibold">
-                                                    <a href="{{ route('databases.show', $database['id']) }}" class="text-decoration-none text-primary">
+                                                    <a href="{{ route('databases.show', $database['id']) }}"
+                                                        class="text-decoration-none text-primary">
                                                         {{ $database['name'] }}
                                                     </a>
                                                 </td>
@@ -125,8 +161,30 @@
                                                     {{ $database['last_backup'] ?? 'No backups yet' }}
                                                 </td>
                                                 <td>
-                                                    <span class="status-dot {{ $statusClass }}"></span>
-                                                    <span class="fw-semibold">{{ $statusLabel }}</span>
+                                                    <div class="status-bar-container">
+                                                        @foreach ($database['status_history'] as $index => $status)
+                                                            @php
+                                                                $barClass = match ($status) {
+                                                                    'success' => 'status-success',
+                                                                    'failed' => 'status-failed',
+                                                                    'pending' => 'status-pending',
+                                                                    default => 'status-default',
+                                                                };
+                                                                $tooltip = ucfirst($status);
+                                                                if ($status === 'default') {
+                                                                    $tooltip = 'No backup';
+                                                                }
+                                                                // Show all 20 on desktop (d-inline-block), show only last 8 on mobile (d-none d-md-inline-block for first 12)
+                                                                // Array has 20 items. Indices 0-11 are the older ones.
+                                                                $responsiveClass = '';
+                                                                if ($index < 12) {
+                                                                    $responsiveClass = 'd-none d-md-inline-block';
+                                                                }
+                                                            @endphp
+                                                            <div class="status-bar {{ $barClass }} {{ $responsiveClass }} status-bar-tooltip"
+                                                                title="{{ $tooltip }}" data-bs-toggle="tooltip"></div>
+                                                        @endforeach
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -147,5 +205,14 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
 </body>
+
 </html>
