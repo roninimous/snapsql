@@ -56,7 +56,7 @@
             <div class="col-lg-8">
                 <div class="card">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">New Database Snapshot</h5>
+                        <h5 class="mb-0">New Database Snapshot Schedule</h5>
                         <a href="{{ route('dashboard') }}" class="btn btn-link text-decoration-none">Cancel</a>
                     </div>
                     <div class="card-body">
@@ -97,7 +97,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label for="password" class="form-label">Password</label>
-                                    <input type="password" id="password" name="password" class="form-control" required>
+                                    <input type="password" id="password" name="password" class="form-control">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="backup_frequency" class="form-label">Backup Frequency</label>
@@ -108,6 +108,11 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                </div>
+                                <div class="col-md-6" id="custom_interval_container" style="display: none;">
+                                    <label for="custom_backup_interval_minutes" class="form-label">Custom Interval (minutes)</label>
+                                    <input type="number" id="custom_backup_interval_minutes" name="custom_backup_interval_minutes" class="form-control" value="{{ old('custom_backup_interval_minutes') }}" min="1" placeholder="e.g., 2880 for 2 days">
+                                    <small class="text-muted">Enter the number of minutes between backups (e.g., 2880 = 2 days, 60 = 1 hour)</small>
                                 </div>
                             </div>
 
@@ -150,5 +155,32 @@
     <footer class="text-center mb-4">
         <small class="text-muted">SnapsQL &copy; {{ date('Y') }} | Licensed under AGPL-3.0</small>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const frequencySelect = document.getElementById('backup_frequency');
+            const customIntervalContainer = document.getElementById('custom_interval_container');
+            const customIntervalInput = document.getElementById('custom_backup_interval_minutes');
+
+            function toggleCustomInterval() {
+                if (frequencySelect.value === 'custom') {
+                    customIntervalContainer.style.display = 'block';
+                    customIntervalInput.setAttribute('required', 'required');
+                } else {
+                    customIntervalContainer.style.display = 'none';
+                    customIntervalInput.removeAttribute('required');
+                }
+            }
+
+            // Initial state
+            toggleCustomInterval();
+
+            // Listen for changes
+            frequencySelect.addEventListener('change', toggleCustomInterval);
+        });
+    </script>
 </body>
 </html>
+
+

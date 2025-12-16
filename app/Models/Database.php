@@ -20,6 +20,7 @@ class Database extends Model
         'password',
         'is_active',
         'backup_frequency',
+        'custom_backup_interval_minutes',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class Database extends Model
             'password' => 'encrypted',
             'is_active' => 'boolean',
             'port' => 'integer',
+            'custom_backup_interval_minutes' => 'integer',
         ];
     }
 

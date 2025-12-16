@@ -20,30 +20,13 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->midd
 
 // Protected routes
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        $databases = [
-            [
-                'name' => 'Primary Database',
-                'last_backup' => '2025-12-15 14:30',
-                'status' => 'success',
-            ],
-            [
-                'name' => 'Analytics Warehouse',
-                'last_backup' => '2025-12-14 09:10',
-                'status' => 'failed',
-            ],
-            [
-                'name' => 'Staging',
-                'last_backup' => null,
-                'status' => 'pending',
-            ],
-        ];
-
-        return view('dashboard', compact('databases'));
-    })->name('dashboard');
+    Route::get('/dashboard', [DatabaseController::class, 'index'])->name('dashboard');
 
     Route::get('/databases/create', [DatabaseController::class, 'create'])->name('databases.create');
     Route::post('/databases', [DatabaseController::class, 'store'])->name('databases.store');
+    Route::get('/databases/{database}', [DatabaseController::class, 'show'])->name('databases.show');
+    Route::delete('/databases/{database}', [DatabaseController::class, 'destroy'])->name('databases.destroy');
+    Route::get('/backups/{backup}/download', [DatabaseController::class, 'download'])->name('backups.download');
 });
 
 // Root redirect

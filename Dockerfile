@@ -3,7 +3,7 @@ FROM php:8.3-apache
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
+# Install system dependencies (including mysqldump via default-mysql-client)
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    mariadb-client \
+    default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -51,3 +51,4 @@ EXPOSE 80
 
 # Start Apache
 CMD ["apache2-foreground"]
+

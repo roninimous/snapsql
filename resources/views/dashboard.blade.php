@@ -83,7 +83,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Dashboard</h5>
                             <a href="{{ route('databases.create') }}" class="btn btn-light btn-sm text-primary fw-semibold">
-                                Create DB Snapshot
+                                Create DB Snapshot Schedule
                             </a>
                         </div>
                     </div>
@@ -116,7 +116,11 @@
                                                 $statusLabel = ucfirst($status);
                                             @endphp
                                             <tr>
-                                                <td class="fw-semibold">{{ $database['name'] }}</td>
+                                                <td class="fw-semibold">
+                                                    <a href="{{ route('databases.show', $database['id']) }}" class="text-decoration-none text-primary">
+                                                        {{ $database['name'] }}
+                                                    </a>
+                                                </td>
                                                 <td class="text-muted">
                                                     {{ $database['last_backup'] ?? 'No backups yet' }}
                                                 </td>

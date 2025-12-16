@@ -86,20 +86,26 @@ class CreateDatabaseBackup implements ShouldQueue
     {
         $tempFile = sys_get_temp_dir().'/snapsql_backup_'.uniqid().'.sql';
 
+        $mysqldumpPath = $this->findMysqldump();
+
+        if (! $mysqldumpPath) {
+            throw new \RuntimeException('mysqldump command not found. Please install mysql-client or mariadb-client package.');
+        }
+
         $command = [
-            'mysqldump',
+            $mysqldumpPath,
             '--single-transaction',
             '--quick',
             '--lock-tables=false',
-            '--routines',
-            '--triggers',
-            '--events',
+            '--routines=false',
+            '--skip-triggers',
+            '--skip-events',
             '--add-drop-table',
             '--no-tablespaces',
             '--host='.$this->database->host,
             '--port='.$this->database->port,
             '--user='.$this->database->username,
-            '--password='.$this->database->password,
+            '--password='.($this->database->password ?? ''),
             $this->database->database,
         ];
 
@@ -112,6 +118,41 @@ class CreateDatabaseBackup implements ShouldQueue
         File::put($tempFile, $result->output());
 
         return $tempFile;
+    }
+
+    /**
+     * Find the mysqldump executable path.
+     */
+    private function findMysqldump(): ?string
+    {
+        $customPath = env('MYSQLDUMP_PATH');
+
+        if ($customPath && file_exists($customPath) && is_executable($customPath)) {
+            return $customPath;
+        }
+
+        $commonPaths = [
+            '/usr/bin/mysqldump',
+            '/usr/local/bin/mysqldump',
+            '/bin/mysqldump',
+        ];
+
+        foreach ($commonPaths as $path) {
+            if (file_exists($path) && is_executable($path)) {
+                return $path;
+            }
+        }
+
+        $whichResult = Process::run(['which', 'mysqldump']);
+
+        if ($whichResult->successful()) {
+            $path = trim($whichResult->output());
+            if (! empty($path) && file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -83,6 +83,7 @@ class CheckBackupSchedule extends Command
             'hourly' => $lastBackupTime->copy()->addHour()->isPast(),
             'daily' => $lastBackupTime->copy()->addDay()->isPast(),
             'weekly' => $lastBackupTime->copy()->addWeek()->isPast(),
+            'custom' => $this->isCustomBackupDue($database, $lastBackupTime),
             default => false,
         };
     }
@@ -95,5 +96,17 @@ class CheckBackupSchedule extends Command
         return $database->backups()
             ->whereIn('status', ['pending', 'processing'])
             ->exists();
+    }
+
+    /**
+     * Check if a custom backup is due based on the interval in minutes.
+     */
+    private function isCustomBackupDue(Database $database, $lastBackupTime): bool
+    {
+        if (! $database->custom_backup_interval_minutes || $database->custom_backup_interval_minutes < 1) {
+            return false;
+        }
+
+        return $lastBackupTime->copy()->addMinutes($database->custom_backup_interval_minutes)->isPast();
     }
 }
