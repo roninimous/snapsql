@@ -28,9 +28,24 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
+# Helper function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Determine Docker Compose command
+if command_exists docker-compose; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
+    echo "❌ Docker Compose is not installed. Please install Docker Compose and try again."
+    exit 1
+fi
+
 # Start Docker Containers
-echo "🐳 Starting Docker containers..."
-docker compose up -d --build
+echo "🐳 Starting Docker containers using $DOCKER_COMPOSE_CMD..."
+$DOCKER_COMPOSE_CMD up -d --build
 
 echo ""
 echo "✅ SnapsQL Installed Successfully!"
