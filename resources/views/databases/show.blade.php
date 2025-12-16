@@ -89,10 +89,18 @@
                         <h2 class="mb-0">{{ $database->name }}</h2>
                         <p class="text-muted mb-0">{{ $database->host }}:{{ $database->port }} / {{ $database->database }}</p>
                     </div>
-                    <div>
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                            Delete Schedule
-                        </button>
+                    <div class="d-flex align-items-center">
+                        <form method="POST" action="{{ route('databases.toggle', $database) }}" class="me-3">
+                            @csrf
+                            @method('PATCH')
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" onchange="this.form.submit()" {{ $database->is_active ? 'checked' : '' }}>
+                                <label class="form-check-label" for="flexSwitchCheckDefault">{{ $database->is_active ? 'Active' : 'Paused' }}</label>
+                            </div>
+                        </form>
+                        <a href="{{ route('databases.edit', $database) }}" class="btn btn-outline-primary btn-sm">
+                            Edit Schedule
+                        </a>
                     </div>
                 </div>
 
@@ -215,31 +223,7 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Delete Database Schedule</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete the schedule for <strong>{{ $database->name }}</strong>?</p>
-                    <p class="text-danger mb-0">
-                        <strong>Warning:</strong> This will permanently delete the database schedule and all associated backups. This action cannot be undone.
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form method="POST" action="{{ route('databases.destroy', $database->id) }}" class="d-inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Delete Schedule</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <footer class="text-center mt-5 mb-3">
         <small class="text-muted">

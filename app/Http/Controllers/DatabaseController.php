@@ -226,7 +226,6 @@ class DatabaseController extends Controller
     public function create(): View
     {
         $frequencies = [
-            'manual' => 'Manual',
             'hourly' => 'Hourly',
             'daily' => 'Daily',
             'weekly' => 'Weekly',
@@ -282,12 +281,22 @@ class DatabaseController extends Controller
     {
         // Only validate fields necessary for connection
         $data = $request->validate([
+            'database_id' => ['nullable', 'integer', 'exists:databases,id'],
             'host' => ['required', 'string', 'max:255'],
             'port' => ['required', 'integer', 'between:1,65535'],
             'database' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255'],
             'password' => ['nullable', 'string', 'max:255'],
         ]);
+
+        // If password is not provided but we have a database_id, fetch the stored password
+        if (empty($data['password']) && !empty($data['database_id'])) {
+            $database = Database::find($data['database_id']);
+            // Ensure the user owns this database
+            if ($database && $database->user_id === Auth::id()) {
+                $data['password'] = $database->password;
+            }
+        }
 
         if ($this->canConnectToDatabase($data)) {
             return response()->json(['success' => true, 'message' => 'Connection successful!']);
@@ -325,5 +334,98 @@ class DatabaseController extends Controller
             'username' => $data['destination_username'] ?? null,
             'password' => $data['destination_password'] ?? null,
         ], fn($value) => filled($value));
+    }
+
+    public function edit(Database $database): View
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $frequencies = [
+            'hourly' => 'Hourly',
+            'daily' => 'Daily',
+            'weekly' => 'Weekly',
+            'custom' => 'Custom',
+        ];
+
+        $destinations = [
+            'local' => 'Local Storage',
+        ];
+
+        return view('databases.edit', compact('database', 'frequencies', 'destinations'));
+    }
+
+    public function update(StoreDatabaseRequest $request, Database $database): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $data = $request->validated();
+
+        if (!$this->canConnectToDatabase($data)) {
+            return back()
+                ->withErrors(['connection' => 'Unable to connect to the database with the provided credentials.'])
+                ->withInput();
+        }
+
+        $database->update([
+            'name' => $data['name'],
+            'host' => $data['host'],
+            'port' => $data['port'],
+            'database' => $data['database'],
+            'username' => $data['username'],
+        ]);
+
+        // Handle password update separately
+        if (filled($data['password'])) {
+            $database->password = $data['password'];
+        }
+
+        $database->fill([
+            'backup_frequency' => $data['backup_frequency'],
+            'custom_backup_interval_minutes' => $data['backup_frequency'] === 'custom' ? ($data['custom_backup_interval_minutes'] ?? null) : null,
+        ])->save();
+
+
+        $credentials = $this->destinationCredentials($data);
+
+        $database->backupDestination()->updateOrCreate(
+            ['database_id' => $database->id],
+            [
+                'type' => $data['destination_type'],
+                'path' => $data['destination_path'],
+                'credentials' => empty($credentials) ? null : $credentials,
+            ]
+        );
+
+        return redirect()
+            ->route('databases.show', $database)
+            ->with('success', 'Schedule updated successfully.');
+    }
+
+    public function toggle(Database $database): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $database->update([
+            'is_active' => !$database->is_active
+        ]);
+
+        $status = $database->is_active ? 'enabled' : 'disabled';
+
+        return back()->with('success', "Schedule has been {$status}.");
     }
 }

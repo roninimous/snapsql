@@ -28,7 +28,7 @@ class StoreDatabaseRequest extends FormRequest
             'database' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255'],
             'password' => ['nullable', 'string', 'max:255'],
-            'backup_frequency' => ['required', 'in:manual,hourly,daily,weekly,custom'],
+            'backup_frequency' => ['required', 'in:hourly,daily,weekly,custom'],
             'custom_backup_interval_minutes' => ['required_if:backup_frequency,custom', 'integer', 'min:1'],
             'destination_type' => ['required', 'in:local'],
             'destination_path' => ['required', 'string', 'max:255'],
