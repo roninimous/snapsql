@@ -13,6 +13,12 @@
         .navbar {
             background-color: #331540 !important;
         }
+        .text-primary{
+            color: #331540 !important;
+        }
+        .bg-primary {
+            background-color: #331540 !important;
+        }
         .btn-primary {
             background-color: #331540;
             border-color: #331540;
@@ -76,9 +82,9 @@
                     <div class="card-header bg-primary text-white">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Dashboard</h5>
-                            <button type="button" class="btn btn-light btn-sm text-primary fw-semibold">
+                            <a href="{{ route('databases.create') }}" class="btn btn-light btn-sm text-primary fw-semibold">
                                 Create DB Snapshot
-                            </button>
+                            </a>
                         </div>
                     </div>
                     <div class="card-body">

@@ -19,6 +19,7 @@ class Database extends Model
         'username',
         'password',
         'is_active',
+        'backup_frequency',
     ];
 
     protected function casts(): array

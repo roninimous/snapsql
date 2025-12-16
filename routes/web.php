@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\SetupController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,9 @@ Route::middleware('auth')->group(function () {
 
         return view('dashboard', compact('databases'));
     })->name('dashboard');
+
+    Route::get('/databases/create', [DatabaseController::class, 'create'])->name('databases.create');
+    Route::post('/databases', [DatabaseController::class, 'store'])->name('databases.store');
 });
 
 // Root redirect
