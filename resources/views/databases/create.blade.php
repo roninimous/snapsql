@@ -77,6 +77,9 @@
                                     <label for="host" class="form-label">Host</label>
                                     <input type="text" id="host" name="host" class="form-control"
                                         value="{{ old('host') }}" required>
+                                    <small class="form-text text-muted">Use <code>host.docker.internal</code> to connect
+                                        to
+                                        localhost.</small>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="port" class="form-label">Port</label>
