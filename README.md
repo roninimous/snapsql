@@ -17,9 +17,11 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 -   **Status Dashboard**: Visual history of recent backup statuses.
 
 
-## Quick Install
+## Quick Install Using Script (Docker Required)
 
-### [LINUX] Linux / [MAC] macOS
+> **Note**: You must have [Docker Desktop](https://docs.docker.com/get-docker/) installed and running.
+
+### [LINUX] Linux
 ```bash
 curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh | sudo bash
 ```
@@ -29,8 +31,6 @@ curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh 
 irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
 ```
 
-> **Note**: You must have [Docker Desktop](https://docs.docker.com/get-docker/) installed and running.
-
 ## Installation
 
 ### Requirements
@@ -38,7 +38,6 @@ irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
 -   Composer
 -   Node.js & NPM
 -   MySQL/MariaDB Client (`mysqldump`)
--   Redis (optional, for queues)
 
 ### Manual Setup
 
