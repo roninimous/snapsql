@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Ensure storage directories exist
+mkdir -p /var/www/html/storage/framework/sessions \
+         /var/www/html/storage/framework/views \
+         /var/www/html/storage/framework/cache \
+         /var/www/html/storage/logs
+
 # Fix permissions for storage and cache directories
 # We use '|| true' to prevent failure if permissions cannot be changed (e.g. some bind mounts)
 # Using 777 to maximize compatibility with Docker bind mounts on Windows/Mac
