@@ -40,6 +40,9 @@ try {
     icacls "storage" /grant "Everyone:(OI)(CI)F" /T | Out-Null
     icacls "database" /grant "Everyone:(OI)(CI)F" /T | Out-Null
     icacls "bootstrap/cache" /grant "Everyone:(OI)(CI)F" /T | Out-Null
+    if (Test-Path ".env") {
+        icacls ".env" /grant "Everyone:F" | Out-Null
+    }
 } catch {
     Write-Host "[!] Could not set Windows permissions. You might need to run as Administrator." -ForegroundColor Magenta
 }
