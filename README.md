@@ -13,6 +13,7 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
     -   **Confirmation**: Requires typing the database name to confirm destructive actions.
 -   **Discord Notifications**: Get beautiful, embedded alerts for successful tests and backup failures.
 -   **Backup Management**: Download, restore, or delete backups securely.
+-   **Single Container Architecture**: Lightweight setup using a single Docker container with SQLite and Supervisor.
 -   **Status Dashboard**: Visual history of recent backup statuses.
 
 
@@ -52,7 +53,7 @@ curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh 
     cp .env.example .env
     php artisan key:generate
     ```
-    *Configure your database connection in `.env`.*
+    *Note: SnapsQL uses SQLite by default, so no database configuration is needed.*
 
 4.  **Database Migration**:
     ```bash
@@ -61,6 +62,10 @@ curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh 
 
 5.  **Run Application**:
     ```bash
+    # Terminal 1: Web Server
+    php artisan serve
+    ```
+    *(For full functionality, you should also run `php artisan queue:work` and `php artisan schedule:work`, or use Supervisor)*
     # Terminal 1: Web Server
     php artisan serve
 

@@ -30,7 +30,7 @@ class CheckBackupSchedule extends Command
     {
         $lock = Cache::lock('backup-schedule-check', 60);
 
-        if (! $lock->get()) {
+        if (!$lock->get()) {
             $this->warn('Another backup schedule check is already running. Skipping...');
 
             return Command::SUCCESS;
@@ -44,7 +44,7 @@ class CheckBackupSchedule extends Command
             $dispatched = 0;
 
             foreach ($databases as $database) {
-                if ($this->isBackupDue($database) && ! $this->hasBackupInProgress($database)) {
+                if ($this->isBackupDue($database) && !$this->hasBackupInProgress($database)) {
                     CreateDatabaseBackup::dispatch($database);
                     $dispatched++;
                     $this->info("Dispatched backup job for database: {$database->name}");
@@ -73,7 +73,7 @@ class CheckBackupSchedule extends Command
             ->latest('completed_at')
             ->first();
 
-        if (! $lastBackup) {
+        if (!$lastBackup) {
             return true;
         }
 
@@ -103,7 +103,7 @@ class CheckBackupSchedule extends Command
      */
     private function isCustomBackupDue(Database $database, $lastBackupTime): bool
     {
-        if (! $database->custom_backup_interval_minutes || $database->custom_backup_interval_minutes < 1) {
+        if (!$database->custom_backup_interval_minutes || $database->custom_backup_interval_minutes < 1) {
             return false;
         }
 
