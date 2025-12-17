@@ -4,33 +4,37 @@
 
 set -e
 
-echo "🚀 Starting SnapsQL Installation..."
+# Color Reset
+NC='\033[0m' # No Color
+PURPLE='\033[1;35m'
+
+echo -e "${PURPLE}[+] Starting SnapsQL Installation...${NC}"
 
 # Check if running as root
 if [ "$(id -u)" -ne 0 ]; then
-    echo "❌ This script must be run as root. Please try again with 'sudo'."
+    echo -e "${PURPLE}[ERROR] This script must be run as root. Please try again with 'sudo'.${NC}"
     exit 1
 fi
 
 # Check for Docker
 if ! command -v docker &> /dev/null; then
-    echo "❌ Docker is not installed. Please install Docker and try again."
+    echo -e "${PURPLE}[ERROR] Docker is not installed. Please install Docker and try again.${NC}"
     exit 1
 fi
 
 # Clone Repository
 if [ -d "snapsql" ]; then
-    echo "📂 'snapsql' directory already exists. Entering directory..."
+    echo -e "${PURPLE}[*] 'snapsql' directory already exists. Entering directory...${NC}"
     cd snapsql
 else
-    echo "📥 Cloning SnapsQL repository..."
+    echo -e "${PURPLE}[v] Cloning SnapsQL repository...${NC}"
     git clone https://github.com/roninimous/snapsql.git
     cd snapsql
 fi
 
 # Environment Setup
 if [ ! -f .env ]; then
-    echo "⚙️  Configuring environment..."
+    echo -e "${PURPLE}[*] Configuring environment...${NC}"
     cp .env.example .env
 fi
 
@@ -45,15 +49,15 @@ if command_exists docker-compose; then
 elif docker compose version >/dev/null 2>&1; then
     DOCKER_COMPOSE_CMD="docker compose"
 else
-    echo "❌ Docker Compose is not installed. Please install Docker Compose and try again."
+    echo -e "${PURPLE}[ERROR] Docker Compose is not installed. Please install Docker Compose and try again.${NC}"
     exit 1
 fi
 
 # Start Docker Containers
-echo "🐳 Starting Docker containers using $DOCKER_COMPOSE_CMD..."
+echo -e "${PURPLE}[>] Starting Docker containers using $DOCKER_COMPOSE_CMD...${NC}"
 $DOCKER_COMPOSE_CMD up -d --build
 
 echo ""
-echo "✅ SnapsQL Installed Successfully!"
-echo "👉 Access your dashboard at: http://localhost:8088"
-echo "   (Initial startup may take a few seconds to run migrations)"
+echo -e "${PURPLE}[OK] SnapsQL Installed Successfully!${NC}"
+echo -e "${PURPLE}-> Access your dashboard at: http://localhost:8088${NC}"
+echo -e "${PURPLE}   (Initial startup may take a few seconds to run migrations)${NC}"

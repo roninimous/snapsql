@@ -19,12 +19,12 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 
 ## Quick Install
 
-### 🐧 Linux /  macOS
+### [LINUX] Linux / [MAC] macOS
 ```bash
 curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh | sudo bash
 ```
 
-### 🪟 Windows (PowerShell)
+### [WIN] Windows (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
 ```
@@ -73,12 +73,15 @@ irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
     ```
     *(For full functionality, you should also run `php artisan queue:work` and `php artisan schedule:work`, or use Supervisor)*
     # Terminal 1: Web Server
+    ```bash
     php artisan serve
-
+    ```
     # Terminal 2: Queue Worker (Required for backups)
+    ```bash
     php artisan queue:work
-
+    ```
     # Terminal 3: Scheduler (Required for automated backups)
+    ```bash
     php artisan schedule:work
     ```
 
