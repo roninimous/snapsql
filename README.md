@@ -19,11 +19,17 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 
 ## Quick Install
 
-Get up and running in minutes with a single command:
-
+### 🐧 Linux /  macOS
 ```bash
 curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh | sudo bash
 ```
+
+### 🪟 Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
+```
+
+> **Note**: You must have [Docker Desktop](https://docs.docker.com/get-docker/) installed and running.
 
 ## Installation
 
@@ -122,6 +128,11 @@ This error occurs if your encryption key (`APP_KEY`) changes or if your Docker c
 
 ### "SSL is required but the server does not support it"
 SnapsQL is configured to skip SSL for internal Docker connections to avoid this error during backup/restore. If you encounter this, rebuild your container.
+
+### "error during connect: ... //./pipe/dockerDesktopLinuxEngine" (Windows)
+This usually means Docker Desktop is not running or your Docker context is incorrect.
+1.  Ensure Docker Desktop is open.
+2.  Run `docker context use default` in PowerShell.
 
 ## Contributing
 
