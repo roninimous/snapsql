@@ -16,6 +16,16 @@ if grep -q "APP_KEY=" .env && [ -z "$(grep "APP_KEY=" .env | cut -d '=' -f 2)" ]
     php artisan key:generate
 fi
 
+# SQLite Setup
+if [ ! -f database/database.sqlite ]; then
+    echo "Creating SQLite database..."
+    touch database/database.sqlite
+fi
+
+# Ensure correct permissions for SQLite file
+chown www-data:www-data database/database.sqlite
+chmod 664 database/database.sqlite
+
 # Run database migrations
 # We use --force to run migrations in production environment without prompt
 php artisan migrate --force

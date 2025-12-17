@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
+    supervisor \
+    sqlite3 \
     default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
@@ -50,12 +52,15 @@ RUN chown -R www-data:www-data /var/www/html \
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Copy Supervisor configuration
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Expose port
 EXPOSE 80
 
 # Set entrypoint
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start Supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 
