@@ -3,14 +3,15 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE backup_destinations MODIFY COLUMN type ENUM('local', 's3', 'ftp', 'sftp', 'b2', 'gdrive') DEFAULT 'local'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE backup_destinations MODIFY COLUMN type ENUM('local', 's3', 'ftp', 'sftp', 'b2', 'gdrive') DEFAULT 'local'");
+        }
     }
 
     /**
@@ -18,6 +19,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE backup_destinations MODIFY COLUMN type ENUM('local', 's3', 'ftp', 'sftp') DEFAULT 'local'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE backup_destinations MODIFY COLUMN type ENUM('local', 's3', 'ftp', 'sftp') DEFAULT 'local'");
+        }
     }
 };
