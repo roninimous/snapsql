@@ -26,6 +26,24 @@ if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" -Destination ".env"
 }
 
+# Ensure Directories and Permissions exist
+Write-Host "📂 Setting up directories and permissions..." -ForegroundColor Cyan
+$directories = @("storage", "database", "bootstrap/cache")
+foreach ($dir in $directories) {
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+}
+
+# Grant Full Control to Everyone for storage and database (Fixes Docker write issues on Windows)
+try {
+    icacls "storage" /grant "Everyone:(OI)(CI)F" /T | Out-Null
+    icacls "database" /grant "Everyone:(OI)(CI)F" /T | Out-Null
+    icacls "bootstrap/cache" /grant "Everyone:(OI)(CI)F" /T | Out-Null
+} catch {
+    Write-Host "⚠️  Could not set Windows permissions. You might need to run as Administrator." -ForegroundColor Yellow
+}
+
 # Start Docker Containers
 Write-Host "🐳 Starting Docker containers..." -ForegroundColor Cyan
 try {

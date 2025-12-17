@@ -19,6 +19,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./storage:/var/www/html/storage
+      # Overlay anonymous volume for framework to fix Windows permission/locking issues
+      - /var/www/html/storage/framework
       - ./bootstrap/cache:/var/www/html/bootstrap/cache
       - ./.env:/var/www/html/.env
       - ./database:/var/www/html/database
