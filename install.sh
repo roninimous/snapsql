@@ -43,6 +43,11 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Ensure Directories and Permissions (Fixes Mac/Linux bind mount permissions)
+echo -e "${PURPLE}[*] Setting up directories and permissions...${NC}"
+mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache database
+chmod -R 777 storage bootstrap/cache database
+
 # Determine Docker Compose command
 if command_exists docker-compose; then
     DOCKER_COMPOSE_CMD="docker-compose"
