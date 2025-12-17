@@ -272,6 +272,10 @@ class DatabaseController extends Controller
             'credentials' => empty($credentials) ? null : $credentials,
         ]);
 
+        if ($data['destination_type'] === 'local') {
+            $this->ensureLocalDirectoryExists($data['destination_path']);
+        }
+
         return redirect()
             ->route('dashboard')
             ->with('success', 'Database saved and schedule created.');
@@ -397,6 +401,10 @@ class DatabaseController extends Controller
 
         $credentials = $this->destinationCredentials($data);
 
+        if ($data['destination_type'] === 'local') {
+            $this->ensureLocalDirectoryExists($data['destination_path']);
+        }
+
         $database->backupDestination()->updateOrCreate(
             ['database_id' => $database->id],
             [
@@ -427,5 +435,22 @@ class DatabaseController extends Controller
         $status = $database->is_active ? 'enabled' : 'disabled';
 
         return back()->with('success', "Schedule has been {$status}.");
+    }
+    private function ensureLocalDirectoryExists(?string $path): void
+    {
+        if (empty($path)) {
+            return;
+        }
+
+        // We assume 'local' disk
+        $fullPath = Storage::disk('local')->path($path);
+
+        if (!File::exists($fullPath)) {
+            // Create with 0777, recursive, force
+            File::makeDirectory($fullPath, 0777, true, true);
+        } else {
+            // Ensure permissions are open if it already exists
+            File::chmod($fullPath, 0777);
+        }
     }
 }

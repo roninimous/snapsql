@@ -185,8 +185,29 @@ class CreateDatabaseBackup implements ShouldQueue
         // Ensure we don't have double slashes if path ends with /
         $backupDir = rtrim($backupDir, '/');
 
+        // Resolve absolute path to ensure permissions
+        $fullBaseDir = Storage::disk('local')->path($backupDir);
+        $fullTargetDir = Storage::disk('local')->path("{$backupDir}/{$this->database->id}");
+
+        // Create/Update permissions for base directory
+        if (!File::exists($fullBaseDir)) {
+            File::makeDirectory($fullBaseDir, 0777, true, true);
+        } else {
+            File::chmod($fullBaseDir, 0777);
+        }
+
+        // Create/Update permissions for target directory
+        if (!File::exists($fullTargetDir)) {
+            File::makeDirectory($fullTargetDir, 0777, true, true);
+        } else {
+            File::chmod($fullTargetDir, 0777);
+        }
+
         $storagePath = "{$backupDir}/{$this->database->id}/{$filename}";
         Storage::disk('local')->put($storagePath, File::get($tempFile));
+
+        // Ensure the file itself is modifiable
+        File::chmod(Storage::disk('local')->path($storagePath), 0666);
 
         return $storagePath;
     }
