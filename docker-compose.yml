@@ -11,6 +11,7 @@ services:
       - APP_ENV=production
       - APP_DEBUG=false
       - DB_CONNECTION=sqlite
+      - SESSION_SECURE_COOKIE=false
       # No DB_HOST/PORT needed for SQLite
     volumes:
       - ./storage:/var/www/html/storage

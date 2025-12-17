@@ -22,7 +22,9 @@ if [ ! -f database/database.sqlite ]; then
     touch database/database.sqlite
 fi
 
-# Ensure correct permissions for SQLite file
+# Ensure correct permissions for SQLite file and directory (needed for WAL/lock files)
+chown -R www-data:www-data database
+chmod -R 775 database
 chown www-data:www-data database/database.sqlite
 chmod 664 database/database.sqlite
 
