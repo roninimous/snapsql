@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDatabaseRequest;
+use App\Jobs\CreateDatabaseBackup;
+use App\Jobs\RestoreDatabase;
 use App\Models\Backup;
 use App\Models\Database;
+use App\Services\SchemaComparisonService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -15,10 +18,6 @@ use Illuminate\View\View;
 use PDO;
 use PDOException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Jobs\CreateDatabaseBackup;
-use App\Jobs\RestoreDatabase;
-use App\Services\SchemaComparisonService;
-use Illuminate\Http\Request;
 
 class DatabaseController extends Controller
 {
@@ -31,7 +30,7 @@ class DatabaseController extends Controller
             ->with([
                 'backups' => function ($query) {
                     $query->latest('completed_at');
-                }
+                },
             ])
             ->get()
             ->map(function ($database) {
@@ -51,14 +50,14 @@ class DatabaseController extends Controller
 
                 // Pad with 'default' (grey) for missing backups to always have 20 slots
                 // Padded at the beginning (left) if we want history to fill up from right?
-                // Visual requirement involved "shows the latest 8 backup status". 
+                // Visual requirement involved "shows the latest 8 backup status".
                 // Usually "bars" imply a timeline. Let's pad left with 'default' so new ones appear on right.
-                // Actually user said "shows the latest 8 backup status". 
+                // Actually user said "shows the latest 8 backup status".
                 // If I have 1 backup: [default, default, ..., success]
-    
+
                 $paddedHistory = array_pad($history, -20, 'default');
                 // array_pad with negative size pads to the left.
-    
+
                 $status = 'pending';
 
                 if ($lastBackup) {
@@ -132,11 +131,11 @@ class DatabaseController extends Controller
             abort(403);
         }
 
-        if ($backup->status !== 'completed' || !$backup->file_path) {
+        if ($backup->status !== 'completed' || ! $backup->file_path) {
             abort(404);
         }
 
-        if (!Storage::disk('local')->exists($backup->file_path)) {
+        if (! Storage::disk('local')->exists($backup->file_path)) {
             abort(404);
         }
 
@@ -169,7 +168,7 @@ class DatabaseController extends Controller
 
         $request->validate([
             'backup_current' => ['nullable', 'boolean'],
-            'db_name_confirmation' => ['required', 'string', 'in:' . $backup->database->database],
+            'db_name_confirmation' => ['required', 'string', 'in:'.$backup->database->database],
         ], [
             'db_name_confirmation.in' => 'The database name confirmation does not match.',
         ]);
@@ -192,10 +191,10 @@ class DatabaseController extends Controller
             \Illuminate\Support\Facades\Log::error('Restore failed', [
                 'backup_id' => $backup->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->withErrors(['restore' => 'Restore failed: ' . $e->getMessage()]);
+            return back()->withErrors(['restore' => 'Restore failed: '.$e->getMessage()]);
         }
     }
 
@@ -245,7 +244,7 @@ class DatabaseController extends Controller
     {
         $data = $request->validated();
 
-        if (!$this->canConnectToDatabase($data)) {
+        if (! $this->canConnectToDatabase($data)) {
             return back()
                 ->withErrors(['connection' => 'Unable to connect to the database with the provided credentials.'])
                 ->withInput();
@@ -273,7 +272,7 @@ class DatabaseController extends Controller
 
         $credentials = $this->destinationCredentials($data);
 
-        if (!empty($credentials)) {
+        if (! empty($credentials)) {
             $database->backupDestinations()->updateOrCreate(
                 ['type' => 's3'],
                 [
@@ -305,7 +304,7 @@ class DatabaseController extends Controller
         ]);
 
         // If password is not provided but we have a database_id, fetch the stored password
-        if (empty($data['password']) && !empty($data['database_id'])) {
+        if (empty($data['password']) && ! empty($data['database_id'])) {
             $database = Database::find($data['database_id']);
             // Ensure the user owns this database
             if ($database && $database->user_id === Auth::id()) {
@@ -313,11 +312,27 @@ class DatabaseController extends Controller
             }
         }
 
-        if ($this->canConnectToDatabase($data)) {
-            return response()->json(['success' => true, 'message' => 'Connection successful!']);
-        }
+        try {
+            $dsn = sprintf(
+                '%s:host=%s;port=%s;dbname=%s',
+                'mysql',
+                $data['host'],
+                $data['port'],
+                $data['database'],
+            );
 
-        return response()->json(['success' => false, 'message' => 'Unable to connect to the database.'], 422);
+            $pdo = new PDO($dsn, $data['username'], $data['password'] ?? '', [
+                PDO::ATTR_TIMEOUT => 5,
+            ]);
+
+            $pdo->query('SELECT 1');
+
+            return response()->json(['success' => true, 'message' => 'Connection successful!']);
+        } catch (PDOException $e) {
+            $errorMessage = $e->getMessage();
+
+            return response()->json(['success' => false, 'message' => $errorMessage], 422);
+        }
     }
 
     public function testCloudConnection(Request $request): JsonResponse
@@ -354,9 +369,10 @@ class DatabaseController extends Controller
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Cloud connection test exception', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Cloud connection failed: ' . $e->getMessage()], 422);
+
+            return response()->json(['success' => false, 'message' => 'Cloud connection failed: '.$e->getMessage()], 422);
         }
 
         return response()->json(['success' => false, 'message' => 'Cloud connection failed.'], 422);
@@ -440,7 +456,7 @@ class DatabaseController extends Controller
         \Illuminate\Support\Facades\Log::info('Database update attempt', [
             'database_id' => $database->id,
             'r2_keys_present' => isset($data['r2_access_key_id']),
-            'r2_bucket' => $data['r2_bucket_name'] ?? 'none'
+            'r2_bucket' => $data['r2_bucket_name'] ?? 'none',
         ]);
 
         if (empty($data['password'] ?? null)) {
@@ -448,11 +464,11 @@ class DatabaseController extends Controller
         }
 
         // Ensure password is present in $data for further logic
-        if (!isset($data['password'])) {
+        if (! isset($data['password'])) {
             $data['password'] = $database->password;
         }
 
-        if (!$this->canConnectToDatabase($data)) {
+        if (! $this->canConnectToDatabase($data)) {
             return back()
                 ->withErrors(['connection' => 'Unable to connect to the database with the provided credentials.'])
                 ->withInput();
@@ -476,7 +492,6 @@ class DatabaseController extends Controller
             'custom_backup_interval_minutes' => $data['backup_frequency'] === 'custom' ? ($data['custom_backup_interval_minutes'] ?? null) : null,
         ])->save();
 
-
         $database->backupDestinations()->updateOrCreate(
             ['type' => 'local'],
             ['path' => $data['destination_path']]
@@ -484,7 +499,7 @@ class DatabaseController extends Controller
 
         $credentials = $this->destinationCredentials($data);
 
-        if (!empty($credentials)) {
+        if (! empty($credentials)) {
             $database->backupDestinations()->updateOrCreate(
                 ['type' => 's3'],
                 [
@@ -509,7 +524,7 @@ class DatabaseController extends Controller
         }
 
         $database->update([
-            'is_active' => !$database->is_active
+            'is_active' => ! $database->is_active,
         ]);
 
         $status = $database->is_active ? 'enabled' : 'disabled';
@@ -530,6 +545,7 @@ class DatabaseController extends Controller
 
         return back()->with('success', 'Cloud backup destination removed successfully.');
     }
+
     private function ensureLocalDirectoryExists(?string $path): void
     {
         if (empty($path)) {
@@ -539,7 +555,7 @@ class DatabaseController extends Controller
         // We assume 'local' disk
         $fullPath = Storage::disk('local')->path($path);
 
-        if (!File::exists($fullPath)) {
+        if (! File::exists($fullPath)) {
             // Create with 0777, recursive, force
             File::makeDirectory($fullPath, 0777, true, true);
         } else {
