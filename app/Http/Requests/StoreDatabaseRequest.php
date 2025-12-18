@@ -30,10 +30,12 @@ class StoreDatabaseRequest extends FormRequest
             'password' => ['nullable', 'string', 'max:255'],
             'backup_frequency' => ['required', 'in:hourly,daily,weekly,custom'],
             'custom_backup_interval_minutes' => ['nullable', 'required_if:backup_frequency,custom', 'integer', 'min:1'],
-            'destination_type' => ['required', 'in:local'],
+            'destination_type' => ['nullable', 'in:local,s3'],
             'destination_path' => ['required', 'string', 'max:255'],
-            'destination_username' => ['nullable', 'string', 'max:255'],
-            'destination_password' => ['nullable', 'string', 'max:255'],
+            'r2_account_id' => ['nullable', 'string', 'max:255'],
+            'r2_access_key_id' => ['nullable', 'string', 'max:255'],
+            'r2_secret_access_key' => ['nullable', 'string', 'max:255'],
+            'r2_bucket_name' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

@@ -32,11 +32,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/databases/{database}', [DatabaseController::class, 'update'])->name('databases.update');
     Route::patch('/databases/{database}/toggle', [DatabaseController::class, 'toggle'])->name('databases.toggle');
     Route::delete('/databases/{database}', [DatabaseController::class, 'destroy'])->name('databases.destroy');
+    Route::delete('/databases/{database}/cloud-backup', [DatabaseController::class, 'destroyCloudBackup'])->name('databases.cloud-backup.destroy');
     Route::post('/databases/test-connection', [DatabaseController::class, 'testConnection'])->name('databases.test-connection');
+    Route::post('/databases/test-cloud-connection', [DatabaseController::class, 'testCloudConnection'])->name('databases.test-cloud-connection');
     Route::get('/backups/{backup}/download', [DatabaseController::class, 'download'])->name('backups.download');
     Route::get('/backups/{backup}/restore', [DatabaseController::class, 'restore'])->name('backups.restore');
     Route::post('/backups/{backup}/restore', [DatabaseController::class, 'processRestore'])->name('backups.process-restore');
-    Route::delete('/backups/{backup}', [DatabaseController::class, 'destroyBackup'])->name('backups.destroy');
     Route::delete('/backups/{backup}', [DatabaseController::class, 'destroyBackup'])->name('backups.destroy');
 
     // Profile Routes

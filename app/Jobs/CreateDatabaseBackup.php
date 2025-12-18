@@ -56,7 +56,7 @@ class CreateDatabaseBackup implements ShouldQueue
                 'file_size' => $fileSize,
             ]);
 
-            $this->uploadToCloudDestination($backup, $tempFile);
+            $this->uploadToCloudDestinations($backup, $tempFile);
 
             $backup->update([
                 'status' => 'completed',
@@ -177,8 +177,8 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     private function saveToLocalStorage(string $tempFile, string $filename): string
     {
-        $destination = $this->database->backupDestination;
-        $backupDir = ($destination && $destination->type === 'local' && !empty($destination->path))
+        $destination = $this->database->localDestination();
+        $backupDir = ($destination && !empty($destination->path))
             ? $destination->path
             : env('BACKUP_PATH', 'backups');
 
@@ -213,22 +213,44 @@ class CreateDatabaseBackup implements ShouldQueue
     }
 
     /**
-     * Upload to cloud destination if configured.
+     * Upload to cloud destinations if configured.
      */
-    private function uploadToCloudDestination(Backup $backup, string $tempFile): void
+    private function uploadToCloudDestinations(Backup $backup, string $tempFile): void
     {
-        $destination = $this->database->backupDestination;
+        $destinations = $this->database->cloudDestinations()->where('is_active', true)->get();
 
-        if (!$destination || !$destination->is_active) {
-            return;
-        }
+        Log::info('Cloud backup attempt', [
+            'database_id' => $this->database->id,
+            'destinations_count' => $destinations->count(),
+            'filename' => $backup->filename
+        ]);
 
-        if ($destination->type === 'local') {
+        if ($destinations->isEmpty()) {
             return;
         }
 
         $service = app(BackupDestinationService::class);
-        $service->upload($destination, $tempFile, $backup->filename);
+
+        foreach ($destinations as $destination) {
+            try {
+                Log::info('Uploading to cloud destination', [
+                    'destination_id' => $destination->id,
+                    'type' => $destination->type,
+                    'path' => $destination->path
+                ]);
+                $service->upload($destination, $tempFile, $backup->filename);
+                Log::info('Cloud upload successful', [
+                    'destination_id' => $destination->id
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Cloud upload failed for destination', [
+                    'database_id' => $this->database->id,
+                    'destination_id' => $destination->id,
+                    'type' => $destination->type,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

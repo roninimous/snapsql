@@ -77,9 +77,15 @@
                                     <label for="host" class="form-label">Host</label>
                                     <input type="text" id="host" name="host" class="form-control"
                                         value="{{ old('host') }}" required>
-                                    <small class="form-text text-muted">Use <code>host.docker.internal</code> to connect
-                                        to
-                                        localhost.</small>
+                                    <small class="form-text text-muted">
+                                        <i>
+                                            Specify the database host IP or hostname.<br>
+                                            When running inside Docker, <code>localhost</code> refers to the container,
+                                            not the host.<br>
+                                            Use <code>host.docker.internal</code> to reach services running on the host
+                                            machine.
+                                        </i>
+                                    </small>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="port" class="form-label">Port</label>
@@ -122,48 +128,56 @@
                                 </div>
                             </div>
 
-                            <p class="form-section-title mb-2">Backup Destination</p>
+                            <p class="form-section-title mb-2">Local Storage (Mandatory)</p>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <label for="destination_type" class="form-label">Destination</label>
-                                    <select id="destination_type" name="destination_type" class="form-select" required>
-                                        @foreach ($destinations as $value => $label)
-                                            <option value="{{ $value }}" @selected(old('destination_type', 'local') === $value)>
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-8">
-                                    <label for="destination_path" class="form-label">Path</label>
+                                <input type="hidden" name="destination_type" value="local">
+                                <div class="col-md-12">
+                                    <label for="destination_path" class="form-label">Local Backup Path</label>
                                     <input type="text" id="destination_path" name="destination_path"
                                         class="form-control" placeholder="/backups/snapsql"
-                                        value="{{ old('destination_path') }}" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="destination_username" class="form-label">Destination Username
-                                        (optional)</label>
-                                    <input type="text" id="destination_username" name="destination_username"
-                                        class="form-control" value="{{ old('destination_username') }}">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="destination_password" class="form-label">Destination Password
-                                        (optional)</label>
-                                    <input type="password" id="destination_password" name="destination_password"
-                                        class="form-control">
+                                        value="{{ old('destination_path', 'backups') }}" required>
+                                    <div class="form-text">This is the path on the SnapsQL server where backups will be
+                                        stored first.</div>
                                 </div>
                             </div>
 
+                            <p class="form-section-title mb-2">Cloud Backup (Optional)</p>
+                            <!-- Cloud Backup Section -->
+                            <div class="col-md-12 mt-4 mb-4">
+                                <div id="cloud_backup_controls">
+                                    <button type="button" id="add_cloud_backup_btn" class="btn btn-outline-primary">
+                                        ☁️ Add Cloud Backup
+                                    </button>
+                                </div>
+                                <div id="cloud_backup_summary" class="alert alert-info mt-2" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Cloud Backup:</strong> <span id="r2_summary_text">Cloudflare
+                                                R2</span>
+                                        </div>
+                                        <button type="button" id="remove_cloud_backup_btn"
+                                            class="btn btn-sm btn-outline-danger">Remove</button>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden Cloud Backup Fields -->
+                                <input type="hidden" name="r2_account_id" id="r2_account_id">
+                                <input type="hidden" name="r2_access_key_id" id="r2_access_key_id">
+                                <input type="hidden" name="r2_secret_access_key" id="r2_secret_access_key">
+                                <input type="hidden" name="r2_bucket_name" id="r2_bucket_name">
+                            </div>
                             <div class="d-flex justify-content-between">
                                 <button type="button" id="test_connection_btn" class="btn btn-outline-secondary">Test
                                     Connection</button>
                                 <button type="submit" class="btn btn-primary">Create Schedule</button>
                             </div>
-                        </form>
                     </div>
+
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <footer class="text-center mb-4">
@@ -171,6 +185,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const frequencySelect = document.getElementById('backup_frequency');
@@ -193,7 +208,142 @@
             // Listen for changes
             frequencySelect.addEventListener('change', toggleCustomInterval);
 
-            // Test Connection
+            // Cloud Backup Modal
+            const addCloudBtn = document.getElementById('add_cloud_backup_btn');
+            const removeCloudBtn = document.getElementById('remove_cloud_backup_btn');
+            const cloudControls = document.getElementById('cloud_backup_controls');
+            const cloudSummary = document.getElementById('cloud_backup_summary');
+
+            addCloudBtn.addEventListener('click', function () {
+                Swal.fire({
+                    title: 'Add Cloud Backup (Cloudflare R2)',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-select" id="swal_cloud_type" disabled>
+                                    <option value="r2">Cloudflare R2</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Account ID</label>
+                                <input type="text" id="swal_r2_account_id" class="form-control" placeholder="Enter Account ID">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Access Key ID</label>
+                                <input type="text" id="swal_r2_access_key_id" class="form-control" placeholder="Enter Access Key ID">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Secret Access Key</label>
+                                <input type="password" id="swal_r2_secret_access_key" class="form-control" placeholder="Enter Secret Access Key">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Bucket Name</label>
+                                <input type="text" id="swal_r2_bucket_name" class="form-control" placeholder="Enter Bucket Name">
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" id="swal_test_cloud_btn" class="btn btn-outline-info w-100">Test Cloud Connection</button>
+                                <div id="swal_test_status" class="mt-2 text-center" style="display: none;"></div>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Add Cloud Backup',
+                    confirmButtonColor: '#331540',
+                    didOpen: () => {
+                        const testBtn = document.getElementById('swal_test_cloud_btn');
+                        const statusDiv = document.getElementById('swal_test_status');
+                        testBtn.addEventListener('click', () => {
+                            const accountId = document.getElementById('swal_r2_account_id').value;
+                            const accessKey = document.getElementById('swal_r2_access_key_id').value;
+                            const secretKey = document.getElementById('swal_r2_secret_access_key').value;
+                            const bucketName = document.getElementById('swal_r2_bucket_name').value;
+
+                            if (!accountId || !accessKey || !secretKey || !bucketName) {
+                                Swal.showValidationMessage('Please fill in all fields to test');
+                                return;
+                            }
+
+                            testBtn.disabled = true;
+                            testBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Testing...';
+                            statusDiv.style.display = 'none';
+
+                            fetch('{{ route("databases.test-cloud-connection") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({
+                                    r2_account_id: accountId,
+                                    r2_access_key_id: accessKey,
+                                    r2_secret_access_key: secretKey,
+                                    r2_bucket_name: bucketName
+                                })
+                            })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        Swal.resetValidationMessage();
+                                        statusDiv.innerHTML = '<div class="alert alert-success py-2 mb-0" style="font-size: 0.9rem;">✅ ' + data.message + '</div>';
+                                        statusDiv.style.display = 'block';
+                                    } else {
+                                        Swal.showValidationMessage(data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    Swal.showValidationMessage('An error occurred during testing.');
+                                })
+                                .finally(() => {
+                                    testBtn.disabled = false;
+                                    testBtn.innerHTML = 'Test Cloud Connection';
+                                });
+                        });
+                    },
+                    preConfirm: () => {
+                        const accountId = document.getElementById('swal_r2_account_id').value;
+                        const accessKey = document.getElementById('swal_r2_access_key_id').value;
+                        const secretKey = document.getElementById('swal_r2_secret_access_key').value;
+                        const bucketName = document.getElementById('swal_r2_bucket_name').value;
+
+                        if (!accountId || !accessKey || !secretKey || !bucketName) {
+                            Swal.showValidationMessage('Please fill in all fields');
+                            return false;
+                        }
+
+                        return { accountId, accessKey, secretKey, bucketName };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Store values in hidden fields
+                        document.getElementById('r2_account_id').value = result.value.accountId;
+                        document.getElementById('r2_access_key_id').value = result.value.accessKey;
+                        document.getElementById('r2_secret_access_key').value = result.value.secretKey;
+                        document.getElementById('r2_bucket_name').value = result.value.bucketName;
+
+                        // Update UI
+                        document.getElementById('r2_summary_text').innerText = `Cloudflare R2 (${result.value.bucketName})`;
+                        cloudControls.style.display = 'none';
+                        cloudSummary.style.display = 'block';
+
+                        Swal.fire('Added!', 'Cloud backup details have been added to the schedule.', 'success');
+                    }
+                });
+            });
+
+            removeCloudBtn.addEventListener('click', function () {
+                // Clear hidden fields
+                document.getElementById('r2_account_id').value = '';
+                document.getElementById('r2_access_key_id').value = '';
+                document.getElementById('r2_secret_access_key').value = '';
+                document.getElementById('r2_bucket_name').value = '';
+
+                // Reset UI
+                cloudControls.style.display = 'block';
+                cloudSummary.style.display = 'none';
+            });
+
+            // Test Connection (Existing logic)
             const testBtn = document.getElementById('test_connection_btn');
             testBtn.addEventListener('click', function () {
                 const form = document.getElementById('create-schedule-form');

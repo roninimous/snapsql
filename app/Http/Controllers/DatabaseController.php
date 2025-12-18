@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDatabaseRequest;
 use App\Models\Backup;
 use App\Models\Database;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -265,13 +266,22 @@ class DatabaseController extends Controller
             'custom_backup_interval_minutes' => $data['backup_frequency'] === 'custom' ? ($data['custom_backup_interval_minutes'] ?? null) : null,
         ]);
 
+        $database->backupDestinations()->updateOrCreate(
+            ['type' => 'local'],
+            ['path' => $data['destination_path']]
+        );
+
         $credentials = $this->destinationCredentials($data);
 
-        $database->backupDestination()->create([
-            'type' => $data['destination_type'],
-            'path' => $data['destination_path'],
-            'credentials' => empty($credentials) ? null : $credentials,
-        ]);
+        if (!empty($credentials)) {
+            $database->backupDestinations()->updateOrCreate(
+                ['type' => 's3'],
+                [
+                    'path' => $data['destination_path'], // Or keep separate? Local uses path. Use 'cloud' as dummy path for s3 if needed.
+                    'credentials' => $credentials,
+                ]
+            );
+        }
 
         if ($data['destination_type'] === 'local') {
             $this->ensureLocalDirectoryExists($data['destination_path']);
@@ -310,6 +320,48 @@ class DatabaseController extends Controller
         return response()->json(['success' => false, 'message' => 'Unable to connect to the database.'], 422);
     }
 
+    public function testCloudConnection(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'r2_account_id' => ['required', 'string', 'max:255'],
+            'r2_access_key_id' => ['required', 'string', 'max:255'],
+            'r2_secret_access_key' => ['required', 'string', 'max:255'],
+            'r2_bucket_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $accountId = $this->cleanR2AccountId($data['r2_account_id']);
+
+        $credentials = [
+            'key' => $data['r2_access_key_id'],
+            'secret' => $data['r2_secret_access_key'],
+            'region' => 'auto',
+            'bucket' => $data['r2_bucket_name'],
+            'endpoint' => "https://{$accountId}.r2.cloudflarestorage.com",
+        ];
+
+        $destination = new \App\Models\BackupDestination([
+            'type' => 's3',
+            'path' => 'backups', // dummy path
+            'credentials' => $credentials,
+        ]);
+
+        try {
+            \Illuminate\Support\Facades\Log::info('Testing cloud connection', ['destination' => $destination->toArray()]);
+            $service = app(\App\Services\BackupDestinationService::class);
+            if ($service->test($destination)) {
+                return response()->json(['success' => true, 'message' => 'Cloud connection successful!']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Cloud connection test exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['success' => false, 'message' => 'Cloud connection failed: ' . $e->getMessage()], 422);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Cloud connection failed.'], 422);
+    }
+
     private function canConnectToDatabase(array $data): bool
     {
         try {
@@ -335,10 +387,20 @@ class DatabaseController extends Controller
 
     private function destinationCredentials(array $data): array
     {
-        return array_filter([
-            'username' => $data['destination_username'] ?? null,
-            'password' => $data['destination_password'] ?? null,
-        ], fn($value) => filled($value));
+        // We check for r2 fields specifically since destination_type is now always local in the primary form
+        if (isset($data['r2_access_key_id']) && filled($data['r2_access_key_id'])) {
+            $accountId = $this->cleanR2AccountId($data['r2_account_id'] ?? '');
+
+            return [
+                'key' => $data['r2_access_key_id'] ?? null,
+                'secret' => $data['r2_secret_access_key'] ?? null,
+                'region' => 'auto',
+                'bucket' => $data['r2_bucket_name'] ?? null,
+                'endpoint' => $accountId ? "https://{$accountId}.r2.cloudflarestorage.com" : null,
+            ];
+        }
+
+        return [];
     }
 
     public function edit(Database $database): View
@@ -375,6 +437,21 @@ class DatabaseController extends Controller
 
         $data = $request->validated();
 
+        \Illuminate\Support\Facades\Log::info('Database update attempt', [
+            'database_id' => $database->id,
+            'r2_keys_present' => isset($data['r2_access_key_id']),
+            'r2_bucket' => $data['r2_bucket_name'] ?? 'none'
+        ]);
+
+        if (empty($data['password'] ?? null)) {
+            $data['password'] = $database->password;
+        }
+
+        // Ensure password is present in $data for further logic
+        if (!isset($data['password'])) {
+            $data['password'] = $database->password;
+        }
+
         if (!$this->canConnectToDatabase($data)) {
             return back()
                 ->withErrors(['connection' => 'Unable to connect to the database with the provided credentials.'])
@@ -390,7 +467,7 @@ class DatabaseController extends Controller
         ]);
 
         // Handle password update separately
-        if (filled($data['password'])) {
+        if (isset($data['password']) && filled($data['password'])) {
             $database->password = $data['password'];
         }
 
@@ -400,20 +477,22 @@ class DatabaseController extends Controller
         ])->save();
 
 
+        $database->backupDestinations()->updateOrCreate(
+            ['type' => 'local'],
+            ['path' => $data['destination_path']]
+        );
+
         $credentials = $this->destinationCredentials($data);
 
-        if ($data['destination_type'] === 'local') {
-            $this->ensureLocalDirectoryExists($data['destination_path']);
+        if (!empty($credentials)) {
+            $database->backupDestinations()->updateOrCreate(
+                ['type' => 's3'],
+                [
+                    'path' => $data['destination_path'],
+                    'credentials' => $credentials,
+                ]
+            );
         }
-
-        $database->backupDestination()->updateOrCreate(
-            ['database_id' => $database->id],
-            [
-                'type' => $data['destination_type'],
-                'path' => $data['destination_path'],
-                'credentials' => empty($credentials) ? null : $credentials,
-            ]
-        );
 
         return redirect()
             ->route('databases.show', $database)
@@ -437,6 +516,20 @@ class DatabaseController extends Controller
 
         return back()->with('success', "Schedule has been {$status}.");
     }
+
+    public function destroyCloudBackup(Database $database): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $database->backupDestinations()->where('type', '!=', 'local')->delete();
+
+        return back()->with('success', 'Cloud backup destination removed successfully.');
+    }
     private function ensureLocalDirectoryExists(?string $path): void
     {
         if (empty($path)) {
@@ -453,5 +546,17 @@ class DatabaseController extends Controller
             // Ensure permissions are open if it already exists
             File::chmod($fullPath, 0777);
         }
+    }
+
+    private function cleanR2AccountId(string $accountId): string
+    {
+        // If it's a URL, extract the account ID part
+        // Example: https://e1a615919c7e5b3332b66c2258d41aad.r2.cloudflarestorage.com/test
+        if (preg_match('/(?:https?:\/\/)?([a-z0-9]{32})\.r2\.cloudflarestorage\.com/i', $accountId, $matches)) {
+            return $matches[1];
+        }
+
+        // Otherwise just return the trimmed input
+        return trim($accountId);
     }
 }

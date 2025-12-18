@@ -104,6 +104,58 @@
                     </div>
                 @endif
 
+                <div class="card mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Cloud Backup Connection</h5>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            $cloudDestination = $database->cloudDestinations()->first();
+                        @endphp
+
+                        @if($cloudDestination)
+                            @php
+                                $r2Creds = $cloudDestination->credentials ?? [];
+                                $r2Bucket = $r2Creds['bucket'] ?? 'Unknown Bucket';
+                            @endphp
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-info text-dark me-2">Cloudflare R2</span>
+                                    <span class="text-muted">Bucket: <strong>{{ $r2Bucket }}</strong></span>
+                                </div>
+                                <span class="status-badge status-completed">Connected</span>
+                            </div>
+                        @else
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted italic">No cloud backup configured.</span>
+                                <button type="button" id="add_cloud_backup_btn" class="btn btn-sm btn-primary">
+                                    ☁️ Add Cloud Backup
+                                </button>
+                            </div>
+
+                            <!-- Hidden Form for Adding Cloud Backup from this page -->
+                            <form action="{{ route('databases.update', $database) }}" method="POST" id="add-cloud-form" style="display: none;">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="name" value="{{ $database->name }}">
+                                <input type="hidden" name="host" value="{{ $database->host }}">
+                                <input type="hidden" name="port" value="{{ $database->port }}">
+                                <input type="hidden" name="database" value="{{ $database->database }}">
+                                <input type="hidden" name="username" value="{{ $database->username }}">
+                                <input type="hidden" name="backup_frequency" value="{{ $database->backup_frequency }}">
+                                <input type="hidden" name="custom_backup_interval_minutes" value="{{ $database->custom_backup_interval_minutes }}">
+                                <input type="hidden" name="destination_type" value="local">
+                                <input type="hidden" name="destination_path" value="{{ $database->localDestination()->path ?? 'backups' }}">
+                                
+                                <input type="hidden" name="r2_account_id" id="r2_account_id">
+                                <input type="hidden" name="r2_access_key_id" id="r2_access_key_id">
+                                <input type="hidden" name="r2_secret_access_key" id="r2_secret_access_key">
+                                <input type="hidden" name="r2_bucket_name" id="r2_bucket_name">
+                            </form>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0">Backup Versions</h5>
@@ -218,6 +270,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -240,7 +293,139 @@
                     }
                 });
             });
+
+            // Cloud Backup Add Logic
+            const addCloudBtn = document.getElementById('add_cloud_backup_btn');
+            if (addCloudBtn) {
+                addCloudBtn.addEventListener('click', function() {
+                    Swal.fire({
+                        title: 'Add Cloud Backup (Cloudflare R2)',
+                        html: `
+                            <div class="text-start">
+                                <div class="mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="swal_cloud_type" disabled>
+                                        <option value="r2">Cloudflare R2</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Account ID</label>
+                                    <input type="text" id="swal_r2_account_id" class="form-control" placeholder="Enter Account ID">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Access Key ID</label>
+                                    <input type="text" id="swal_r2_access_key_id" class="form-control" placeholder="Enter Access Key ID">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Secret Access Key</label>
+                                    <input type="password" id="swal_r2_secret_access_key" class="form-control" placeholder="Enter Secret Access Key">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Bucket Name</label>
+                                    <input type="text" id="swal_r2_bucket_name" class="form-control" placeholder="Enter Bucket Name">
+                                </div>
+                            <div class="mt-3">
+                                <button type="button" id="swal_test_cloud_btn" class="btn btn-outline-info w-100">Test Cloud Connection</button>
+                                <div id="swal_test_status" class="mt-2 text-center" style="display: none;"></div>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Add Cloud Backup',
+                    confirmButtonColor: '#331540',
+                    didOpen: () => {
+                        const testBtn = document.getElementById('swal_test_cloud_btn');
+                        const statusDiv = document.getElementById('swal_test_status');
+                        testBtn.addEventListener('click', () => {
+                            const accountId = document.getElementById('swal_r2_account_id').value;
+                            const accessKey = document.getElementById('swal_r2_access_key_id').value;
+                            const secretKey = document.getElementById('swal_r2_secret_access_key').value;
+                            const bucketName = document.getElementById('swal_r2_bucket_name').value;
+
+                            if (!accountId || !accessKey || !secretKey || !bucketName) {
+                                Swal.showValidationMessage('Please fill in all fields to test');
+                                return;
+                            }
+
+                            testBtn.disabled = true;
+                            testBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Testing...';
+                            statusDiv.style.display = 'none';
+
+                            fetch('{{ route("databases.test-cloud-connection") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({
+                                    r2_account_id: accountId,
+                                    r2_access_key_id: accessKey,
+                                    r2_secret_access_key: secretKey,
+                                    r2_bucket_name: bucketName
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.resetValidationMessage();
+                                    statusDiv.innerHTML = '<div class="alert alert-success py-2 mb-0" style="font-size: 0.9rem;">✅ ' + data.message + '</div>';
+                                    statusDiv.style.display = 'block';
+                                } else {
+                                    Swal.showValidationMessage(data.message);
+                                }
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage('An error occurred during testing.');
+                            })
+                            .finally(() => {
+                                testBtn.disabled = false;
+                                testBtn.innerHTML = 'Test Cloud Connection';
+                            });
+                        });
+                    },
+                    preConfirm: () => {
+                        const accountId = document.getElementById('swal_r2_account_id').value;
+                        const accessKey = document.getElementById('swal_r2_access_key_id').value;
+                        const secretKey = document.getElementById('swal_r2_secret_access_key').value;
+                        const bucketName = document.getElementById('swal_r2_bucket_name').value;
+
+                            if (!accountId || !accessKey || !secretKey || !bucketName) {
+                                Swal.showValidationMessage('Please fill in all fields');
+                                return false;
+                            }
+
+                            return { accountId, accessKey, secretKey, bucketName };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Populate hidden form and submit
+                            document.getElementById('r2_account_id').value = result.value.accountId;
+                            document.getElementById('r2_access_key_id').value = result.value.accessKey;
+                            document.getElementById('r2_secret_access_key').value = result.value.secretKey;
+                            document.getElementById('r2_bucket_name').value = result.value.bucketName;
+                            
+                            document.getElementById('add-cloud-form').submit();
+                        }
+                    });
+                });
+            }
         });
+
+        function confirmRemoveCloud() {
+            Swal.fire({
+                title: 'Remove Cloud Backup?',
+                text: 'Snapshots will no longer be uploaded to Cloudflare R2. Local backups will remain active.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, remove it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('remove-cloud-form').submit();
+                }
+            });
+        }
     </script>
 </body>
 </html>

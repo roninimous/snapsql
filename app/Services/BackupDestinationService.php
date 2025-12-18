@@ -57,7 +57,7 @@ class BackupDestinationService
      */
     private function uploadToLocal(BackupDestination $destination, string $filePath, string $filename): void
     {
-        $fullPath = rtrim($destination->path, '/').'/'.$filename;
+        $fullPath = rtrim($destination->path, '/') . '/' . $filename;
         Storage::disk('local')->put($fullPath, File::get($filePath));
     }
 
@@ -66,8 +66,8 @@ class BackupDestinationService
      */
     private function testLocal(BackupDestination $destination): bool
     {
-        $testPath = rtrim($destination->path, '/').'/test_'.uniqid().'.txt';
-        $testContent = 'SnapsQL connection test - '.now()->toDateTimeString();
+        $testPath = rtrim($destination->path, '/') . '/test_' . uniqid() . '.txt';
+        $testContent = 'SnapsQL connection test - ' . now()->toDateTimeString();
 
         try {
             Storage::disk('local')->put($testPath, $testContent);
@@ -75,7 +75,7 @@ class BackupDestinationService
 
             return true;
         } catch (\Exception $e) {
-            throw new \RuntimeException('Local storage test failed: '.$e->getMessage());
+            throw new \RuntimeException('Local storage test failed: ' . $e->getMessage());
         }
     }
 
@@ -90,17 +90,17 @@ class BackupDestinationService
             throw new \RuntimeException('S3 credentials not configured');
         }
 
-        $s3Path = rtrim($destination->path, '/').'/'.$filename;
+        $s3Path = rtrim($destination->path, '/') . '/' . $filename;
 
         $s3Disk = Storage::build([
             'driver' => 's3',
             'key' => $credentials['key'] ?? null,
             'secret' => $credentials['secret'] ?? null,
-            'region' => $credentials['region'] ?? 'us-east-1',
+            'region' => $credentials['region'] ?? 'auto',
             'bucket' => $credentials['bucket'] ?? null,
             'url' => $credentials['url'] ?? null,
             'endpoint' => $credentials['endpoint'] ?? null,
-            'use_path_style_endpoint' => $credentials['use_path_style_endpoint'] ?? false,
+            'use_path_style_endpoint' => true,
         ]);
 
         $s3Disk->put($s3Path, File::get($filePath));
@@ -117,27 +117,38 @@ class BackupDestinationService
             throw new \RuntimeException('S3 credentials not configured');
         }
 
-        $testPath = rtrim($destination->path, '/').'/test_'.uniqid().'.txt';
-        $testContent = 'SnapsQL connection test - '.now()->toDateTimeString();
-
-        $s3Disk = Storage::build([
-            'driver' => 's3',
-            'key' => $credentials['key'] ?? null,
-            'secret' => $credentials['secret'] ?? null,
-            'region' => $credentials['region'] ?? 'us-east-1',
-            'bucket' => $credentials['bucket'] ?? null,
-            'url' => $credentials['url'] ?? null,
-            'endpoint' => $credentials['endpoint'] ?? null,
-            'use_path_style_endpoint' => $credentials['use_path_style_endpoint'] ?? false,
-        ]);
-
         try {
-            $s3Disk->put($testPath, $testContent);
-            $s3Disk->delete($testPath);
+            $client = new \Aws\S3\S3Client([
+                'version' => 'latest',
+                'region' => 'auto',
+                'endpoint' => $credentials['endpoint'] ?? null,
+                'credentials' => [
+                    'key' => $credentials['key'] ?? null,
+                    'secret' => $credentials['secret'] ?? null,
+                ],
+                'use_path_style_endpoint' => true,
+            ]);
+
+            $testFile = 'snapsql_test_' . time() . '.txt';
+
+            // Try to write a tiny test file
+            $client->putObject([
+                'Bucket' => $credentials['bucket'] ?? null,
+                'Key' => $testFile,
+                'Body' => 'Connection test from SnapsQL',
+            ]);
+
+            // Try to delete it (optional, but good for cleanup)
+            $client->deleteObject([
+                'Bucket' => $credentials['bucket'] ?? null,
+                'Key' => $testFile,
+            ]);
 
             return true;
+        } catch (\Aws\S3\Exception\S3Exception $e) {
+            throw new \RuntimeException('S3 connection test failed: ' . ($e->getAwsErrorMessage() ?: $e->getMessage()));
         } catch (\Exception $e) {
-            throw new \RuntimeException('S3 connection test failed: '.$e->getMessage());
+            throw new \RuntimeException('S3 connection test failed: ' . $e->getMessage());
         }
     }
 
@@ -152,7 +163,7 @@ class BackupDestinationService
             throw new \RuntimeException('B2 credentials not configured');
         }
 
-        $b2Path = rtrim($destination->path, '/').'/'.$filename;
+        $b2Path = rtrim($destination->path, '/') . '/' . $filename;
 
         $b2Disk = Storage::build([
             'driver' => 's3',
@@ -160,7 +171,7 @@ class BackupDestinationService
             'secret' => $credentials['application_key'] ?? null,
             'region' => $credentials['region'] ?? 'us-west-000',
             'bucket' => $credentials['bucket'] ?? null,
-            'endpoint' => 'https://s3.'.$credentials['region'] ?? 'us-west-000'.'.backblazeb2.com',
+            'endpoint' => 'https://s3.' . $credentials['region'] ?? 'us-west-000' . '.backblazeb2.com',
             'use_path_style_endpoint' => true,
         ]);
 
@@ -178,8 +189,8 @@ class BackupDestinationService
             throw new \RuntimeException('B2 credentials not configured');
         }
 
-        $testPath = rtrim($destination->path, '/').'/test_'.uniqid().'.txt';
-        $testContent = 'SnapsQL connection test - '.now()->toDateTimeString();
+        $testPath = rtrim($destination->path, '/') . '/test_' . uniqid() . '.txt';
+        $testContent = 'SnapsQL connection test - ' . now()->toDateTimeString();
 
         $b2Disk = Storage::build([
             'driver' => 's3',
@@ -187,7 +198,7 @@ class BackupDestinationService
             'secret' => $credentials['application_key'] ?? null,
             'region' => $credentials['region'] ?? 'us-west-000',
             'bucket' => $credentials['bucket'] ?? null,
-            'endpoint' => 'https://s3.'.$credentials['region'] ?? 'us-west-000'.'.backblazeb2.com',
+            'endpoint' => 'https://s3.' . $credentials['region'] ?? 'us-west-000' . '.backblazeb2.com',
             'use_path_style_endpoint' => true,
         ]);
 
@@ -197,7 +208,7 @@ class BackupDestinationService
 
             return true;
         } catch (\Exception $e) {
-            throw new \RuntimeException('B2 connection test failed: '.$e->getMessage());
+            throw new \RuntimeException('B2 connection test failed: ' . $e->getMessage());
         }
     }
 
@@ -215,7 +226,7 @@ class BackupDestinationService
         $accessToken = $credentials['access_token'] ?? null;
         $folderId = $destination->path ?: 'root';
 
-        if (! $accessToken) {
+        if (!$accessToken) {
             throw new \RuntimeException('Google Drive access token not provided');
         }
 
@@ -230,25 +241,25 @@ class BackupDestinationService
             $metadata['parents'] = [$folderId];
         }
 
-        $boundary = '----WebKitFormBoundary'.uniqid();
+        $boundary = '----WebKitFormBoundary' . uniqid();
         $delimiter = "\r\n--{$boundary}\r\n";
         $closeDelimiter = "\r\n--{$boundary}--\r\n";
 
         $body = $delimiter
-            .'Content-Type: application/json; charset=UTF-8'."\r\n\r\n"
-            .json_encode($metadata)
-            .$delimiter
-            .'Content-Type: '.$mimeType."\r\n"
-            .'Content-Transfer-Encoding: binary'."\r\n\r\n"
-            .$fileContents
-            .$closeDelimiter;
+            . 'Content-Type: application/json; charset=UTF-8' . "\r\n\r\n"
+            . json_encode($metadata)
+            . $delimiter
+            . 'Content-Type: ' . $mimeType . "\r\n"
+            . 'Content-Transfer-Encoding: binary' . "\r\n\r\n"
+            . $fileContents
+            . $closeDelimiter;
 
         $response = Http::withToken($accessToken)
-            ->withBody($body, 'multipart/related; boundary='.$boundary)
+            ->withBody($body, 'multipart/related; boundary=' . $boundary)
             ->post('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
 
-        if (! $response->successful()) {
-            throw new \RuntimeException('Google Drive upload failed: '.$response->body());
+        if (!$response->successful()) {
+            throw new \RuntimeException('Google Drive upload failed: ' . $response->body());
         }
     }
 
@@ -265,7 +276,7 @@ class BackupDestinationService
 
         $accessToken = $credentials['access_token'] ?? null;
 
-        if (! $accessToken) {
+        if (!$accessToken) {
             throw new \RuntimeException('Google Drive access token not provided');
         }
 
@@ -275,8 +286,8 @@ class BackupDestinationService
                     'fields' => 'user',
                 ]);
 
-            if (! $response->successful()) {
-                throw new \RuntimeException('Google Drive API request failed: '.$response->body());
+            if (!$response->successful()) {
+                throw new \RuntimeException('Google Drive API request failed: ' . $response->body());
             }
 
             $folderId = $destination->path ?: 'root';
@@ -287,14 +298,14 @@ class BackupDestinationService
                         'fields' => 'id,name',
                     ]);
 
-                if (! $folderResponse->successful()) {
+                if (!$folderResponse->successful()) {
                     throw new \RuntimeException('Google Drive folder not found or inaccessible');
                 }
             }
 
             return true;
         } catch (\Exception $e) {
-            throw new \RuntimeException('Google Drive connection test failed: '.$e->getMessage());
+            throw new \RuntimeException('Google Drive connection test failed: ' . $e->getMessage());
         }
     }
 
@@ -303,7 +314,7 @@ class BackupDestinationService
      */
     private function uploadToFtp(BackupDestination $destination, string $filePath, string $filename): void
     {
-        if (! extension_loaded('ftp')) {
+        if (!extension_loaded('ftp')) {
             throw new \RuntimeException('FTP extension is not installed');
         }
 
@@ -313,16 +324,16 @@ class BackupDestinationService
             throw new \RuntimeException('FTP credentials not configured');
         }
 
-        $ftpPath = rtrim($destination->path, '/').'/'.$filename;
+        $ftpPath = rtrim($destination->path, '/') . '/' . $filename;
 
         $connection = @ftp_connect($credentials['host'] ?? 'localhost', $credentials['port'] ?? 21);
 
-        if (! $connection) {
+        if (!$connection) {
             throw new \RuntimeException('Failed to connect to FTP server');
         }
 
         try {
-            if (! @ftp_login($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
+            if (!@ftp_login($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
                 throw new \RuntimeException('FTP authentication failed');
             }
 
@@ -330,7 +341,7 @@ class BackupDestinationService
                 @ftp_pasv($connection, true);
             }
 
-            if (! @ftp_put($connection, $ftpPath, $filePath, FTP_BINARY)) {
+            if (!@ftp_put($connection, $ftpPath, $filePath, FTP_BINARY)) {
                 throw new \RuntimeException('Failed to upload file to FTP server');
             }
         } finally {
@@ -343,7 +354,7 @@ class BackupDestinationService
      */
     private function testFtp(BackupDestination $destination): bool
     {
-        if (! extension_loaded('ftp')) {
+        if (!extension_loaded('ftp')) {
             throw new \RuntimeException('FTP extension is not installed');
         }
 
@@ -355,12 +366,12 @@ class BackupDestinationService
 
         $connection = @ftp_connect($credentials['host'] ?? 'localhost', $credentials['port'] ?? 21);
 
-        if (! $connection) {
+        if (!$connection) {
             throw new \RuntimeException('Failed to connect to FTP server');
         }
 
         try {
-            if (! @ftp_login($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
+            if (!@ftp_login($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
                 throw new \RuntimeException('FTP authentication failed');
             }
 
@@ -368,14 +379,14 @@ class BackupDestinationService
                 @ftp_pasv($connection, true);
             }
 
-            $testPath = rtrim($destination->path, '/').'/test_'.uniqid().'.txt';
-            $testContent = 'SnapsQL connection test - '.now()->toDateTimeString();
-            $tempFile = sys_get_temp_dir().'/snapsql_ftp_test_'.uniqid().'.txt';
+            $testPath = rtrim($destination->path, '/') . '/test_' . uniqid() . '.txt';
+            $testContent = 'SnapsQL connection test - ' . now()->toDateTimeString();
+            $tempFile = sys_get_temp_dir() . '/snapsql_ftp_test_' . uniqid() . '.txt';
 
             File::put($tempFile, $testContent);
 
             try {
-                if (! @ftp_put($connection, $testPath, $tempFile, FTP_BINARY)) {
+                if (!@ftp_put($connection, $testPath, $tempFile, FTP_BINARY)) {
                     throw new \RuntimeException('Failed to upload test file');
                 }
 
@@ -397,7 +408,7 @@ class BackupDestinationService
      */
     private function uploadToSftp(BackupDestination $destination, string $filePath, string $filename): void
     {
-        if (! extension_loaded('ssh2')) {
+        if (!extension_loaded('ssh2')) {
             throw new \RuntimeException('SSH2 extension is not installed');
         }
 
@@ -407,27 +418,27 @@ class BackupDestinationService
             throw new \RuntimeException('SFTP credentials not configured');
         }
 
-        $sftpPath = rtrim($destination->path, '/').'/'.$filename;
+        $sftpPath = rtrim($destination->path, '/') . '/' . $filename;
 
         $connection = @ssh2_connect($credentials['host'] ?? 'localhost', $credentials['port'] ?? 22);
 
-        if (! $connection) {
+        if (!$connection) {
             throw new \RuntimeException('Failed to connect to SFTP server');
         }
 
-        if (! @ssh2_auth_password($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
+        if (!@ssh2_auth_password($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
             throw new \RuntimeException('SFTP authentication failed');
         }
 
         $sftp = @ssh2_sftp($connection);
 
-        if (! $sftp) {
+        if (!$sftp) {
             throw new \RuntimeException('Failed to initialize SFTP subsystem');
         }
 
         $stream = @fopen("ssh2.sftp://{$sftp}{$sftpPath}", 'w');
 
-        if (! $stream) {
+        if (!$stream) {
             throw new \RuntimeException('Failed to open SFTP file stream');
         }
 
@@ -447,7 +458,7 @@ class BackupDestinationService
      */
     private function testSftp(BackupDestination $destination): bool
     {
-        if (! extension_loaded('ssh2')) {
+        if (!extension_loaded('ssh2')) {
             throw new \RuntimeException('SSH2 extension is not installed');
         }
 
@@ -459,26 +470,26 @@ class BackupDestinationService
 
         $connection = @ssh2_connect($credentials['host'] ?? 'localhost', $credentials['port'] ?? 22);
 
-        if (! $connection) {
+        if (!$connection) {
             throw new \RuntimeException('Failed to connect to SFTP server');
         }
 
-        if (! @ssh2_auth_password($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
+        if (!@ssh2_auth_password($connection, $credentials['username'] ?? '', $credentials['password'] ?? '')) {
             throw new \RuntimeException('SFTP authentication failed');
         }
 
         $sftp = @ssh2_sftp($connection);
 
-        if (! $sftp) {
+        if (!$sftp) {
             throw new \RuntimeException('Failed to initialize SFTP subsystem');
         }
 
-        $testPath = rtrim($destination->path, '/').'/test_'.uniqid().'.txt';
-        $testContent = 'SnapsQL connection test - '.now()->toDateTimeString();
+        $testPath = rtrim($destination->path, '/') . '/test_' . uniqid() . '.txt';
+        $testContent = 'SnapsQL connection test - ' . now()->toDateTimeString();
 
         $stream = @fopen("ssh2.sftp://{$sftp}{$testPath}", 'w');
 
-        if (! $stream) {
+        if (!$stream) {
             throw new \RuntimeException('Failed to open SFTP file stream');
         }
 

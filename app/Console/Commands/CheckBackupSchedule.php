@@ -70,20 +70,24 @@ class CheckBackupSchedule extends Command
     {
         $lastBackup = $database->backups()
             ->whereIn('status', ['completed', 'failed'])
-            ->latest('completed_at')
+            ->latest('started_at')
             ->first();
 
         if (!$lastBackup) {
             return true;
         }
 
-        $lastBackupTime = $lastBackup->completed_at ?? $lastBackup->created_at;
+        $lastBackupTime = $lastBackup->started_at ?? $lastBackup->created_at;
+
+        // We subtract 10 seconds to account for slight timing variations in the scheduler
+        // so it triggers within the intended minute window.
+        $checkTime = now()->addSeconds(10);
 
         return match ($database->backup_frequency) {
-            'hourly' => $lastBackupTime->copy()->addHour()->isPast(),
-            'daily' => $lastBackupTime->copy()->addDay()->isPast(),
-            'weekly' => $lastBackupTime->copy()->addWeek()->isPast(),
-            'custom' => $this->isCustomBackupDue($database, $lastBackupTime),
+            'hourly' => $lastBackupTime->copy()->addHour()->isBefore($checkTime),
+            'daily' => $lastBackupTime->copy()->addDay()->isBefore($checkTime),
+            'weekly' => $lastBackupTime->copy()->addWeek()->isBefore($checkTime),
+            'custom' => $this->isCustomBackupDue($database, $lastBackupTime, $checkTime),
             default => false,
         };
     }
@@ -101,12 +105,12 @@ class CheckBackupSchedule extends Command
     /**
      * Check if a custom backup is due based on the interval in minutes.
      */
-    private function isCustomBackupDue(Database $database, $lastBackupTime): bool
+    private function isCustomBackupDue(Database $database, $lastBackupTime, $checkTime): bool
     {
         if (!$database->custom_backup_interval_minutes || $database->custom_backup_interval_minutes < 1) {
             return false;
         }
 
-        return $lastBackupTime->copy()->addMinutes($database->custom_backup_interval_minutes)->isPast();
+        return $lastBackupTime->copy()->addMinutes($database->custom_backup_interval_minutes)->isBefore($checkTime);
     }
 }

@@ -43,8 +43,18 @@ class Database extends Model
         return $this->hasMany(Backup::class);
     }
 
-    public function backupDestination(): HasOne
+    public function backupDestinations(): HasMany
     {
-        return $this->hasOne(BackupDestination::class);
+        return $this->hasMany(BackupDestination::class);
+    }
+
+    public function localDestination(): ?BackupDestination
+    {
+        return $this->backupDestinations()->where('type', 'local')->first();
+    }
+
+    public function cloudDestinations(): HasMany
+    {
+        return $this->backupDestinations()->where('type', '!=', 'local');
     }
 }
