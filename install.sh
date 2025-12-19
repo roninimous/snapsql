@@ -29,6 +29,7 @@ if [ -d "snapsql" ]; then
 else
     echo -e "${PURPLE}[v] Cloning SnapsQL repository...${NC}"
     git clone https://github.com/roninimous/snapsql.git
+    chmod -R 777 snapsql
     cd snapsql
 fi
 
