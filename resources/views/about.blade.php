@@ -91,7 +91,7 @@
                             <p class="text-muted">
                                 SnapsQL is a database backup management system that allows you to schedule and manage
                                 database snapshots. It provides automated backups, cloud storage integration as well as restore specific databases from backups, and schema comparison to ensure the backup is compatible with the live database, and
-                                notification support on backup failures. This project is open-source and free to use. It founded by <code>Keosombath Nou</code> as a personal project and is now used by many people around the world.</p>
+                                notification support on backup failures. This project is open-source and free to use. It is founded by <code>Keosombath Nou</code> as a personal project to help him manage his databases and is now used by many people around the world.</p>
                         </div>
 
                         <hr>
