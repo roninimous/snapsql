@@ -72,6 +72,52 @@
         .text-muted {
             color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }} !important;
         }
+        :root {
+            --swal-bg: {{ $theme === 'dark' ? '#1c141d' : '#ffffff' }};
+            --swal-text: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            --swal-border: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
+            --swal-input-bg: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            --swal-input-border: {{ $theme === 'dark' ? '#3d3540' : '#ced4da' }};
+        }
+        .swal2-popup {
+            background-color: var(--swal-bg) !important;
+            color: var(--swal-text) !important;
+        }
+        .swal2-title,
+        .swal2-html-container {
+            color: var(--swal-text) !important;
+        }
+        .swal2-input,
+        .swal2-select,
+        .swal2-textarea {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+            border-color: var(--swal-input-border) !important;
+        }
+        .swal2-popup .form-select {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+            border-color: var(--swal-input-border) !important;
+        }
+        .swal2-popup .form-select option {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+        }
+        .swal2-input::placeholder,
+        .swal2-textarea::placeholder {
+            color: {{ $theme === 'dark' ? '#c8ced6' : '#6c757d' }} !important;
+        }
+        .swal2-styled.swal2-confirm {
+            background-color: #331540 !important;
+            color: #ffffff !important;
+        }
+        .swal2-styled.swal2-cancel {
+            background-color: {{ $theme === 'dark' ? '#4b5563' : '#6c757d' }} !important;
+            color: #ffffff !important;
+        }
+        .swal2-validation-message {
+            color: var(--swal-text) !important;
+        }
     </style>
 </head>
 
@@ -221,6 +267,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const isDarkTheme = {{ $theme === 'dark' ? 'true' : 'false' }};
+        const swalBaseConfig = {
+            background: isDarkTheme ? '#1c141d' : '#ffffff',
+            color: isDarkTheme ? '#e9ecef' : '#212529',
+            confirmButtonColor: '#331540',
+            cancelButtonColor: isDarkTheme ? '#6c757d' : '#6c757d'
+        };
+
         document.addEventListener('DOMContentLoaded', function () {
             const frequencySelect = document.getElementById('backup_frequency');
             const customIntervalContainer = document.getElementById('custom_interval_container');
@@ -250,6 +304,7 @@
 
             addCloudBtn.addEventListener('click', function () {
                 Swal.fire({
+                    ...swalBaseConfig,
                     title: 'Add Cloud Backup (Cloudflare R2)',
                     html: `
                         <div class="text-start">

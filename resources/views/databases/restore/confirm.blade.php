@@ -62,6 +62,21 @@
             background-color: {{ $theme === 'dark' ? '#2a2429' : 'inherit' }};
             border-color: {{ $theme === 'dark' ? '#3d3540' : 'inherit' }};
         }
+        .alert-warning {
+            background-color: {{ $theme === 'dark' ? '#3d2b1f' : '#fff3cd' }};
+            border-color: {{ $theme === 'dark' ? '#5c4030' : '#ffecb5' }};
+            color: {{ $theme === 'dark' ? '#f3d9a4' : '#664d03' }};
+        }
+        .alert-success {
+            background-color: {{ $theme === 'dark' ? '#1f3625' : '#d1e7dd' }};
+            border-color: {{ $theme === 'dark' ? '#2e4a35' : '#badbcc' }};
+            color: {{ $theme === 'dark' ? '#b8e3c1' : '#0f5132' }};
+        }
+        .alert-danger {
+            background-color: {{ $theme === 'dark' ? '#3b2326' : '#f8d7da' }};
+            border-color: {{ $theme === 'dark' ? '#5a3236' : '#f5c2c7' }};
+            color: {{ $theme === 'dark' ? '#f3c2c7' : '#842029' }};
+        }
 
         .text-muted {
             color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }} !important;

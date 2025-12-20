@@ -72,6 +72,52 @@
         .text-muted {
             color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }} !important;
         }
+        :root {
+            --swal-bg: {{ $theme === 'dark' ? '#1c141d' : '#ffffff' }};
+            --swal-text: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            --swal-border: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
+            --swal-input-bg: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            --swal-input-border: {{ $theme === 'dark' ? '#3d3540' : '#ced4da' }};
+        }
+        .swal2-popup {
+            background-color: var(--swal-bg) !important;
+            color: var(--swal-text) !important;
+        }
+        .swal2-title,
+        .swal2-html-container {
+            color: var(--swal-text) !important;
+        }
+        .swal2-input,
+        .swal2-select,
+        .swal2-textarea {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+            border-color: var(--swal-input-border) !important;
+        }
+        .swal2-popup .form-select {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+            border-color: var(--swal-input-border) !important;
+        }
+        .swal2-popup .form-select option {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+        }
+        .swal2-input::placeholder,
+        .swal2-textarea::placeholder {
+            color: {{ $theme === 'dark' ? '#c8ced6' : '#6c757d' }} !important;
+        }
+        .swal2-styled.swal2-confirm {
+            background-color: #331540 !important;
+            color: #ffffff !important;
+        }
+        .swal2-styled.swal2-cancel {
+            background-color: {{ $theme === 'dark' ? '#4b5563' : '#6c757d' }} !important;
+            color: #ffffff !important;
+        }
+        .swal2-validation-message {
+            color: var(--swal-text) !important;
+        }
     </style>
 </head>
 
@@ -238,8 +284,7 @@
                         <h6 class="card-title text-danger">Danger Zone</h6>
                         <p class="card-text text-muted small">Deleting this schedule will also delete all associated
                             backups securely.</p>
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#deleteModal">
+                        <button type="button" class="btn btn-danger btn-sm" id="delete-schedule-btn">
                             Delete Schedule
                         </button>
                     </div>
@@ -252,36 +297,22 @@
         <small class="text-muted">SnapsQL &copy; {{ date('Y') }} | Licensed under AGPL-3.0</small>
     </footer>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Delete Database Schedule</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete the schedule for <strong>{{ $database->name }}</strong>?</p>
-                    <p class="text-danger mb-0">
-                        <strong>Warning:</strong> This will permanently delete the database schedule and all associated
-                        backups. This action cannot be undone.
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form method="POST" action="{{ route('databases.destroy', $database->id) }}" class="d-inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">Delete Schedule</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    <form method="POST" action="{{ route('databases.destroy', $database->id) }}" class="d-none" id="delete-schedule-form">
+        @csrf
+        @method('DELETE')
+    </form>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const isDarkTheme = {{ $theme === 'dark' ? 'true' : 'false' }};
+        const swalBaseConfig = {
+            background: isDarkTheme ? '#1c141d' : '#ffffff',
+            color: isDarkTheme ? '#e9ecef' : '#212529',
+            confirmButtonColor: '#331540',
+            cancelButtonColor: isDarkTheme ? '#6c757d' : '#6c757d'
+        };
+
         document.addEventListener('DOMContentLoaded', function () {
             const frequencySelect = document.getElementById('backup_frequency');
             const customIntervalContainer = document.getElementById('custom_interval_container');
@@ -313,6 +344,7 @@
                 const currentBucketName = document.getElementById('r2_bucket_name').value;
 
                 Swal.fire({
+                    ...swalBaseConfig,
                     title: 'Cloud Backup (Cloudflare R2)',
                     html: `
                         <div class="text-start">
@@ -522,6 +554,26 @@
                         testBtn.disabled = false;
                         testBtn.innerText = originalText;
                     });
+            });
+
+            const deleteScheduleBtn = document.getElementById('delete-schedule-btn');
+            const deleteScheduleForm = document.getElementById('delete-schedule-form');
+
+            deleteScheduleBtn.addEventListener('click', function () {
+                Swal.fire({
+                    ...swalBaseConfig,
+                    title: 'Delete Schedule?',
+                    text: 'This will permanently delete this database schedule and all backups.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#d33',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteScheduleForm.submit();
+                    }
+                });
             });
         });
     </script>

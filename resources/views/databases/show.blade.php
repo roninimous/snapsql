@@ -41,11 +41,11 @@
         }
         .card {
             background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
-            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#e9ecef' }};
             border-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
         }
         .card-header {
-            background-color: {{ $theme === 'dark' ? '#331540' : '#ffffff' }} !important;
+            background-color: {{ $theme === 'dark' ? '#331540' : '#331540' }} !important;
             border-bottom-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }} !important;
         }
         .table {
@@ -122,6 +122,52 @@
         .alert-danger {
             background-color: {{ $theme === 'dark' ? '#2a2429' : 'inherit' }};
             border-color: {{ $theme === 'dark' ? '#3d3540' : 'inherit' }};
+        }
+        :root {
+            --swal-bg: {{ $theme === 'dark' ? '#1c141d' : '#ffffff' }};
+            --swal-text: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            --swal-border: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
+            --swal-input-bg: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            --swal-input-border: {{ $theme === 'dark' ? '#3d3540' : '#ced4da' }};
+        }
+        .swal2-popup {
+            background-color: var(--swal-bg) !important;
+            color: var(--swal-text) !important;
+        }
+        .swal2-title,
+        .swal2-html-container {
+            color: var(--swal-text) !important;
+        }
+        .swal2-input,
+        .swal2-select,
+        .swal2-textarea {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+            border-color: var(--swal-input-border) !important;
+        }
+        .swal2-popup .form-select {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+            border-color: var(--swal-input-border) !important;
+        }
+        .swal2-popup .form-select option {
+            background-color: var(--swal-input-bg) !important;
+            color: var(--swal-text) !important;
+        }
+        .swal2-input::placeholder,
+        .swal2-textarea::placeholder {
+            color: {{ $theme === 'dark' ? '#c8ced6' : '#6c757d' }} !important;
+        }
+        .swal2-styled.swal2-confirm {
+            background-color: #331540 !important;
+            color: #ffffff !important;
+        }
+        .swal2-styled.swal2-cancel {
+            background-color: {{ $theme === 'dark' ? '#4b5563' : '#6c757d' }} !important;
+            color: #ffffff !important;
+        }
+        .swal2-validation-message {
+            color: var(--swal-text) !important;
         }
     </style>
 </head>
@@ -294,38 +340,14 @@
                                                         <span class="text-muted">-</span>
                                                     @endif
                                                     
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1" data-bs-toggle="modal" data-bs-target="#deleteBackupModal{{ $backup->id }}" title="Delete Backup">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1 delete-backup-btn" data-backup-id="{{ $backup->id }}" data-backup-filename="{{ $backup->filename }}" title="Delete Backup">
                                                         🗑️
                                                     </button>
-
-                                                    <!-- Delete Backup Modal -->
-                                                    <div class="modal fade" id="deleteBackupModal{{ $backup->id }}" tabindex="-1" aria-labelledby="deleteBackupModalLabel{{ $backup->id }}" aria-hidden="true">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="deleteBackupModalLabel{{ $backup->id }}">Delete Backup</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
-                                                                <form action="{{ route('backups.destroy', $backup->id) }}" method="POST">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <div class="modal-body">
-                                                                        <p>Are you sure you want to delete the backup <strong>{{ $backup->filename }}</strong>?</p>
-                                                                        <p class="text-danger mb-3">This action cannot be undone.</p>
-                                                                        
-                                                                        <div class="mb-3">
-                                                                            <label for="confirmation{{ $backup->id }}" class="form-label">Type <strong>DELETE</strong> to confirm:</label>
-                                                                            <input type="text" class="form-control delete-confirmation-input" id="confirmation{{ $backup->id }}" name="confirmation" required>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="modal-footer">
-                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                        <button type="submit" class="btn btn-danger delete-submit-btn" disabled>Delete Backup</button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    <form id="delete-backup-form-{{ $backup->id }}" action="{{ route('backups.destroy', $backup->id) }}" method="POST" class="d-none">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <input type="hidden" name="confirmation" value="">
+                                                    </form>
                                         @endforeach
                                     </tbody>
                                 </table>
@@ -353,20 +375,51 @@
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
+        const isDarkTheme = {{ $theme === 'dark' ? 'true' : 'false' }};
+        const swalBaseConfig = {
+            background: isDarkTheme ? '#1c141d' : '#ffffff',
+            color: isDarkTheme ? '#e9ecef' : '#212529',
+            confirmButtonColor: '#331540',
+            cancelButtonColor: isDarkTheme ? '#6c757d' : '#6c757d'
+        };
+
         // Delete Backup Confirmation Logic
         document.addEventListener('DOMContentLoaded', function() {
-            const deleteInputs = document.querySelectorAll('.delete-confirmation-input');
-            
-            deleteInputs.forEach(input => {
-                input.addEventListener('input', function() {
-                    const modalContent = this.closest('.modal-content');
-                    const submitBtn = modalContent.querySelector('.delete-submit-btn');
-                    
-                    if (this.value === 'DELETE') {
-                        submitBtn.disabled = false;
-                    } else {
-                        submitBtn.disabled = true;
-                    }
+            const deleteButtons = document.querySelectorAll('.delete-backup-btn');
+
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const backupId = this.getAttribute('data-backup-id');
+                    const backupName = this.getAttribute('data-backup-filename');
+                    const form = document.getElementById(`delete-backup-form-${backupId}`);
+                    const confirmationInput = form.querySelector('input[name="confirmation"]');
+
+                    Swal.fire({
+                        ...swalBaseConfig,
+                        title: 'Delete Backup?',
+                        text: `This will permanently delete ${backupName}.`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Delete',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#d33',
+                        input: 'text',
+                        inputLabel: 'Type DELETE to confirm',
+                        inputPlaceholder: 'DELETE',
+                        preConfirm: (value) => {
+                            if (value !== 'DELETE') {
+                                Swal.showValidationMessage('Please type DELETE to confirm.');
+                                return false;
+                            }
+
+                            confirmationInput.value = value;
+                            return true;
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
                 });
             });
 
@@ -375,6 +428,7 @@
             if (addCloudBtn) {
                 addCloudBtn.addEventListener('click', function() {
                     Swal.fire({
+                        ...swalBaseConfig,
                         title: 'Add Cloud Backup (Cloudflare R2)',
                         html: `
                             <div class="text-start">
@@ -489,6 +543,7 @@
 
         function confirmRemoveCloud() {
             Swal.fire({
+                        ...swalBaseConfig,
                 title: 'Remove Cloud Backup?',
                 text: 'Snapshots will no longer be uploaded to Cloudflare R2. Local backups will remain active.',
                 icon: 'warning',
@@ -511,6 +566,7 @@
             if (manualBackupBtn && manualBackupForm) {
                 manualBackupBtn.addEventListener('click', function() {
                     Swal.fire({
+                        ...swalBaseConfig,
                         title: 'Create Manual Backup?',
                         text: 'This will create a backup of {{ $database->name }} now. The backup will appear in the list once completed.',
                         icon: 'question',
@@ -530,6 +586,7 @@
     </script>
 </body>
 </html>
+
 
 
 
