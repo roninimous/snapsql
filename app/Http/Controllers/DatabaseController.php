@@ -32,6 +32,8 @@ class DatabaseController extends Controller
                     $query->latest('completed_at');
                 },
             ])
+            ->orderBy('sort_order')
+            ->orderBy('id')
             ->get()
             ->map(function ($database) use ($user) {
                 $lastBackup = $database->backups->first();
@@ -86,6 +88,8 @@ class DatabaseController extends Controller
                     'last_backup' => $lastBackupFormatted,
                     'status' => $status,
                     'status_history' => $paddedHistory,
+                    'is_active' => $database->is_active,
+                    'sort_order' => $database->sort_order ?? 0,
                 ];
             });
 
@@ -265,6 +269,9 @@ class DatabaseController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
+        // Get the highest sort_order and add 1 for the new database
+        $maxSortOrder = $user->databases()->max('sort_order') ?? 0;
+
         $database = $user->databases()->create([
             'name' => $data['name'],
             'connection_type' => 'mysql',
@@ -275,6 +282,7 @@ class DatabaseController extends Controller
             'password' => $data['password'] ?? '',
             'backup_frequency' => $data['backup_frequency'],
             'custom_backup_interval_minutes' => $data['backup_frequency'] === 'custom' ? ($data['custom_backup_interval_minutes'] ?? null) : null,
+            'sort_order' => $maxSortOrder + 1,
         ]);
 
         $database->backupDestinations()->updateOrCreate(
@@ -574,6 +582,60 @@ class DatabaseController extends Controller
             // Ensure permissions are open if it already exists
             File::chmod($fullPath, 0777);
         }
+    }
+
+    public function moveUp(Database $database): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        // Get the database that should be above this one
+        $previousDatabase = $user->databases()
+            ->where('sort_order', '<', $database->sort_order ?? 0)
+            ->orderBy('sort_order', 'desc')
+            ->first();
+
+        if ($previousDatabase) {
+            // Swap sort orders
+            $tempOrder = $database->sort_order ?? 0;
+            $database->sort_order = $previousDatabase->sort_order ?? 0;
+            $previousDatabase->sort_order = $tempOrder;
+            $database->save();
+            $previousDatabase->save();
+        }
+
+        return redirect()->route('dashboard');
+    }
+
+    public function moveDown(Database $database): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        // Get the database that should be below this one
+        $nextDatabase = $user->databases()
+            ->where('sort_order', '>', $database->sort_order ?? 0)
+            ->orderBy('sort_order', 'asc')
+            ->first();
+
+        if ($nextDatabase) {
+            // Swap sort orders
+            $tempOrder = $database->sort_order ?? 0;
+            $database->sort_order = $nextDatabase->sort_order ?? 0;
+            $nextDatabase->sort_order = $tempOrder;
+            $database->save();
+            $nextDatabase->save();
+        }
+
+        return redirect()->route('dashboard');
     }
 
     private function cleanR2AccountId(string $accountId): string

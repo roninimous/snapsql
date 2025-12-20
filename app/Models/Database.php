@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Database extends Model
 {
@@ -21,6 +20,7 @@ class Database extends Model
         'is_active',
         'backup_frequency',
         'custom_backup_interval_minutes',
+        'sort_order',
     ];
 
     protected function casts(): array
@@ -30,6 +30,7 @@ class Database extends Model
             'is_active' => 'boolean',
             'port' => 'integer',
             'custom_backup_interval_minutes' => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 

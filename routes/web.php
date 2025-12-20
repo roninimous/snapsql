@@ -32,6 +32,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/databases/{database}/edit', [DatabaseController::class, 'edit'])->name('databases.edit');
     Route::put('/databases/{database}', [DatabaseController::class, 'update'])->name('databases.update');
     Route::patch('/databases/{database}/toggle', [DatabaseController::class, 'toggle'])->name('databases.toggle');
+    Route::post('/databases/{database}/move-up', [DatabaseController::class, 'moveUp'])->name('databases.move-up');
+    Route::post('/databases/{database}/move-down', [DatabaseController::class, 'moveDown'])->name('databases.move-down');
     Route::delete('/databases/{database}', [DatabaseController::class, 'destroy'])->name('databases.destroy');
     Route::delete('/databases/{database}/cloud-backup', [DatabaseController::class, 'destroyCloudBackup'])->name('databases.cloud-backup.destroy');
     Route::post('/databases/test-connection', [DatabaseController::class, 'testConnection'])->name('databases.test-connection');
