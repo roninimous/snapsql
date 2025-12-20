@@ -638,6 +638,30 @@ class DatabaseController extends Controller
         return redirect()->route('dashboard');
     }
 
+    public function createManualBackup(Database $database): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($database->user_id !== $user->id) {
+            abort(403);
+        }
+
+        // Check if there's already a backup in progress
+        $hasBackupInProgress = $database->backups()
+            ->whereIn('status', ['pending', 'processing'])
+            ->exists();
+
+        if ($hasBackupInProgress) {
+            return back()->with('error', 'A backup is already in progress for this database.');
+        }
+
+        // Dispatch the backup job
+        CreateDatabaseBackup::dispatch($database);
+
+        return back()->with('success', 'Manual backup started successfully. It will appear in the list once completed.');
+    }
+
     private function cleanR2AccountId(string $accountId): string
     {
         // If it's a URL, extract the account ID part

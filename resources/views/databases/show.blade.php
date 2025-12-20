@@ -221,8 +221,14 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Backup Versions</h5>
+                        <form method="POST" action="{{ route('databases.backup', $database) }}" id="manual-backup-form" class="d-inline">
+                            @csrf
+                            <button type="button" class="btn btn-sm btn-light" id="manual-backup-btn">
+                                Manual Backup
+                            </button>
+                        </form>
                     </div>
                     <div class="card-body">
                         @if ($backups->isEmpty())
@@ -496,6 +502,31 @@
                 }
             });
         }
+
+        // Manual Backup Confirmation
+        document.addEventListener('DOMContentLoaded', function() {
+            const manualBackupBtn = document.getElementById('manual-backup-btn');
+            const manualBackupForm = document.getElementById('manual-backup-form');
+            
+            if (manualBackupBtn && manualBackupForm) {
+                manualBackupBtn.addEventListener('click', function() {
+                    Swal.fire({
+                        title: 'Create Manual Backup?',
+                        text: 'This will create a backup of {{ $database->name }} now. The backup will appear in the list once completed.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#331540',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, backup now',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            manualBackupForm.submit();
+                        }
+                    });
+                });
+            }
+        });
     </script>
 </body>
 </html>

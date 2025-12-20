@@ -57,7 +57,7 @@
 
     <div class="container my-5">
         <div class="row justify-content-center">
-            <div class="col-lg-6">
+            <div class="col-lg-8">
                 <div class="card">
                     <div class="card-header bg-white">
                         <h5 class="mb-0">Account Information</h5>
