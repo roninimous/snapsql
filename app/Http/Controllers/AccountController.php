@@ -7,11 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
-class ProfileController extends Controller
+class AccountController extends Controller
 {
     public function edit(): View
     {
-        return view('profile.edit', [
+        return view('account.edit', [
             'user' => auth()->user(),
         ]);
     }

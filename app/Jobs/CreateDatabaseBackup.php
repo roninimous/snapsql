@@ -22,8 +22,7 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     public function __construct(
         public Database $database
-    ) {
-    }
+    ) {}
 
     /**
      * Execute the job.
@@ -42,7 +41,7 @@ class CreateDatabaseBackup implements ShouldQueue
         try {
             $tempFile = $this->createDump($backup);
 
-            if (!File::exists($tempFile)) {
+            if (! File::exists($tempFile)) {
                 throw new \RuntimeException('Dump file was not created');
             }
 
@@ -88,11 +87,11 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     private function createDump(Backup $backup): string
     {
-        $tempFile = sys_get_temp_dir() . '/snapsql_backup_' . uniqid() . '.sql';
+        $tempFile = sys_get_temp_dir().'/snapsql_backup_'.uniqid().'.sql';
 
         $mysqldumpPath = $this->findMysqldump();
 
-        if (!$mysqldumpPath) {
+        if (! $mysqldumpPath) {
             throw new \RuntimeException('mysqldump command not found. Please install mysql-client or mariadb-client package.');
         }
 
@@ -107,17 +106,17 @@ class CreateDatabaseBackup implements ShouldQueue
             '--add-drop-table',
             '--no-tablespaces',
             '--skip-ssl',
-            '--host=' . $this->database->host,
-            '--port=' . $this->database->port,
-            '--user=' . $this->database->username,
-            '--password=' . ($this->database->password ?? ''),
+            '--host='.$this->database->host,
+            '--port='.$this->database->port,
+            '--user='.$this->database->username,
+            '--password='.($this->database->password ?? ''),
             $this->database->database,
         ];
 
         $result = Process::run($command);
 
-        if (!$result->successful()) {
-            throw new \RuntimeException('mysqldump failed: ' . $result->errorOutput());
+        if (! $result->successful()) {
+            throw new \RuntimeException('mysqldump failed: '.$result->errorOutput());
         }
 
         File::put($tempFile, $result->output());
@@ -153,7 +152,7 @@ class CreateDatabaseBackup implements ShouldQueue
 
         if ($whichResult->successful()) {
             $path = trim($whichResult->output());
-            if (!empty($path) && file_exists($path)) {
+            if (! empty($path) && file_exists($path)) {
                 return $path;
             }
         }
@@ -166,10 +165,33 @@ class CreateDatabaseBackup implements ShouldQueue
      */
     private function generateFilename(): string
     {
-        $timestamp = now()->format('Y-m-d_His');
+        $user = $this->database->user;
+        $timezone = $user->timezone ?? 'UTC';
+        $format = $user->backup_filename_format ?? '{database}_{timestamp}';
+
+        // Get current time in user's timezone
+        $now = now()->setTimezone($timezone);
+        $timestamp = $now->format('Y-m-d_His');
         $dbName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $this->database->name);
 
-        return "{$dbName}_{$timestamp}.sql";
+        // Replace placeholders in format
+        $filename = str_replace(
+            ['{database}', '{timestamp}', '{date}', '{time}'],
+            [
+                $dbName,
+                $timestamp,
+                $now->format('Y-m-d'),
+                $now->format('His'),
+            ],
+            $format
+        );
+
+        // Ensure it ends with .sql
+        if (! str_ends_with($filename, '.sql')) {
+            $filename .= '.sql';
+        }
+
+        return $filename;
     }
 
     /**
@@ -178,7 +200,7 @@ class CreateDatabaseBackup implements ShouldQueue
     private function saveToLocalStorage(string $tempFile, string $filename): string
     {
         $destination = $this->database->localDestination();
-        $backupDir = ($destination && !empty($destination->path))
+        $backupDir = ($destination && ! empty($destination->path))
             ? $destination->path
             : env('BACKUP_PATH', 'backups');
 
@@ -190,14 +212,14 @@ class CreateDatabaseBackup implements ShouldQueue
         $fullTargetDir = Storage::disk('local')->path("{$backupDir}/{$this->database->id}");
 
         // Create/Update permissions for base directory
-        if (!File::exists($fullBaseDir)) {
+        if (! File::exists($fullBaseDir)) {
             File::makeDirectory($fullBaseDir, 0777, true, true);
         } else {
             File::chmod($fullBaseDir, 0777);
         }
 
         // Create/Update permissions for target directory
-        if (!File::exists($fullTargetDir)) {
+        if (! File::exists($fullTargetDir)) {
             File::makeDirectory($fullTargetDir, 0777, true, true);
         } else {
             File::chmod($fullTargetDir, 0777);
@@ -222,7 +244,7 @@ class CreateDatabaseBackup implements ShouldQueue
         Log::info('Cloud backup attempt', [
             'database_id' => $this->database->id,
             'destinations_count' => $destinations->count(),
-            'filename' => $backup->filename
+            'filename' => $backup->filename,
         ]);
 
         if ($destinations->isEmpty()) {
@@ -236,11 +258,11 @@ class CreateDatabaseBackup implements ShouldQueue
                 Log::info('Uploading to cloud destination', [
                     'destination_id' => $destination->id,
                     'type' => $destination->type,
-                    'path' => $destination->path
+                    'path' => $destination->path,
                 ]);
                 $service->upload($destination, $tempFile, $backup->filename);
                 Log::info('Cloud upload successful', [
-                    'destination_id' => $destination->id
+                    'destination_id' => $destination->id,
                 ]);
             } catch (\Exception $e) {
                 Log::error('Cloud upload failed for destination', [
@@ -261,7 +283,7 @@ class CreateDatabaseBackup implements ShouldQueue
         $user = $this->database->user;
         $webhookUrl = $user->discord_webhook_url;
 
-        if (!$webhookUrl) {
+        if (! $webhookUrl) {
             return;
         }
 
@@ -282,7 +304,7 @@ class CreateDatabaseBackup implements ShouldQueue
                             ],
                             [
                                 'name' => 'Time',
-                                'value' => now()->toDateTimeString(),
+                                'value' => now()->setTimezone($user->timezone ?? 'UTC')->toDateTimeString(),
                                 'inline' => true,
                             ],
                             [
@@ -293,11 +315,11 @@ class CreateDatabaseBackup implements ShouldQueue
                         'footer' => [
                             'text' => 'SnapsQL Alert',
                         ],
-                    ]
+                    ],
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to send Discord notification: ' . $e->getMessage());
+            Log::error('Failed to send Discord notification: '.$e->getMessage());
         }
     }
 }

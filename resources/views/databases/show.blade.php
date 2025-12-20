@@ -7,14 +7,20 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('logo-square-transparent.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        @php
+            $theme = auth()->user()->theme ?? 'light';
+        @endphp
+
         body {
-            background-color: #f8f9fa;
+            background-color: {{ $theme === 'dark' ? '#120016' : '#f8f9fa' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .navbar {
             background-color: #331540 !important;
         }
         .text-primary{
-            color: #331540 !important;
+            color: {{ $theme === 'dark' ? '#91469b' : '#331540' }} !important;
         }
         .bg-primary {
             background-color: #331540 !important;
@@ -32,6 +38,38 @@
         .btn-outline-light:hover {
             background-color: #220e27;
             border-color: #220e27;
+        }
+        .card {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
+        }
+        .card-header {
+            background-color: {{ $theme === 'dark' ? '#331540' : '#ffffff' }} !important;
+            border-bottom-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }} !important;
+        }
+        .table {
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+        }
+        .table thead th {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-bottom-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
+        }
+        .table tbody tr {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            border-top-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
+        }
+        .table tbody td {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+        }
+        .table tbody tr:hover {
+            background-color: {{ $theme === 'dark' ? '#331540' : '#f8f9fa' }};
+        }
+        .text-muted {
+            color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }} !important;
         }
         .status-badge {
             padding: 4px 12px;
@@ -56,8 +94,34 @@
             color: #374151;
         }
         .file-size {
-            color: #6b7280;
+            color: {{ $theme === 'dark' ? '#adb5bd' : '#6b7280' }};
             font-size: 0.875rem;
+        }
+        .form-control, .form-select {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : '#ced4da' }};
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: #331540;
+        }
+        .badge {
+            background-color: {{ $theme === 'dark' ? '#3d3540' : '#e9ecef' }};
+        }
+        .alert {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : 'inherit' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : 'inherit' }};
+        }
+        .alert-success {
+            background-color: #d1e7dd !important;
+            border-color: #badbcc !important;
+            color: #0f5132 !important;
+        }
+        .alert-danger {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : 'inherit' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : 'inherit' }};
         }
     </style>
 </head>
@@ -197,10 +261,16 @@
                                                     <span class="status-badge {{ $statusClass }}">{{ $statusLabel }}</span>
                                                 </td>
                                                 <td class="text-muted">
-                                                    {{ $backup->started_at?->format('Y-m-d H:i:s') ?? '-' }}
+                                                    @php
+                                                        $userTimezone = auth()->user()->timezone ?? 'UTC';
+                                                        echo $backup->started_at ? $backup->started_at->setTimezone($userTimezone)->format('Y-m-d H:i:s') : '-';
+                                                    @endphp
                                                 </td>
                                                 <td class="text-muted">
-                                                    {{ $backup->completed_at?->format('Y-m-d H:i:s') ?? '-' }}
+                                                    @php
+                                                        $userTimezone = auth()->user()->timezone ?? 'UTC';
+                                                        echo $backup->completed_at ? $backup->completed_at->setTimezone($userTimezone)->format('Y-m-d H:i:s') : '-';
+                                                    @endphp
                                                 </td>
                                                 <td>
                                                     @if ($backup->status === 'completed' && $backup->file_path)

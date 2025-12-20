@@ -33,7 +33,7 @@ class DatabaseController extends Controller
                 },
             ])
             ->get()
-            ->map(function ($database) {
+            ->map(function ($database) use ($user) {
                 $lastBackup = $database->backups->first();
                 // Get latest 20 backups. Collection is already ordered by latest 'completed_at' from the eager load.
                 $recentBackups = $database->backups->take(20);
@@ -68,10 +68,22 @@ class DatabaseController extends Controller
                     };
                 }
 
+                $userTimezone = $user->timezone ?? 'UTC';
+                $lastBackupFormatted = null;
+                if ($lastBackup?->completed_at) {
+                    // Laravel stores datetimes in UTC, convert to user's timezone
+                    // Use copy() to avoid mutating the original Carbon instance
+                    $lastBackupFormatted = $lastBackup->completed_at
+                        ->copy()
+                        ->utc()
+                        ->setTimezone($userTimezone)
+                        ->format('Y-m-d H:i');
+                }
+
                 return [
                     'id' => $database->id,
                     'name' => $database->name,
-                    'last_backup' => $lastBackup?->completed_at?->format('Y-m-d H:i') ?? null,
+                    'last_backup' => $lastBackupFormatted,
                     'status' => $status,
                     'status_history' => $paddedHistory,
                 ];

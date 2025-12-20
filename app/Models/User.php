@@ -23,6 +23,9 @@ class User extends Authenticatable
         'email',
         'password',
         'discord_webhook_url',
+        'timezone',
+        'theme',
+        'backup_filename_format',
     ];
 
     /**

@@ -8,27 +8,59 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('logo-square-transparent.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        @php
+            $theme = auth()->user()->theme ?? 'light';
+        @endphp
+
         body {
-            background-color: #f8f9fa;
+            background-color: {{ $theme === 'dark' ? '#120016' : '#f8f9fa' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .card {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
         }
 
+        .card-header {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }} !important;
+            border-bottom-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }} !important;
+        }
+
         .notification-option {
-            border: 1px solid #dee2e6;
+            border: 1px solid {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
             transition: all 0.2s;
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
         }
 
         .notification-option.active {
             border-color: #331540;
-            background-color: #fcfaff;
+            background-color: {{ $theme === 'dark' ? '#0d0a0e52' : '#fcfaff' }};
+        }
+        .form-control {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : '#ced4da' }};
         }
 
+        .form-control:focus {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: #331540;
+        }
+
+        .form-label, .form-text {
+            color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }};
+        }
+        .text-muted {
+            color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }} !important;
+        }
         .discord-color {
             color: #5865F2;
         }
@@ -103,7 +135,7 @@
 
                             <!-- Telegram Option (Disabled via opacity/pointer-events) -->
                             <div class="notification-option"
-                                style="opacity: 0.6; pointer-events: none; background-color: #f8f9fa;">
+                                style="opacity: 0.6; pointer-events: none;">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="channel"

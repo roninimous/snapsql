@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SetupController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,14 +41,24 @@ Route::middleware('auth')->group(function () {
     Route::post('/backups/{backup}/restore', [DatabaseController::class, 'processRestore'])->name('backups.process-restore');
     Route::delete('/backups/{backup}', [DatabaseController::class, 'destroyBackup'])->name('backups.destroy');
 
-    // Profile Routes
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+    // Account Routes
+    Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('password.update');
 
     // Notification Routes
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::put('/notifications', [NotificationController::class, 'update'])->name('notifications.update');
     Route::post('/notifications/test-discord', [NotificationController::class, 'testDiscord'])->name('notifications.test-discord');
+
+    // Settings Routes
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/check-update', function () {
+        return view('check-update');
+    })->name('check-update');
+    Route::get('/about', function () {
+        return view('about');
+    })->name('about');
 });
 
 // Root redirect

@@ -8,8 +8,14 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('logo-square-transparent.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        @php
+            $theme = auth()->user()->theme ?? 'light';
+        @endphp
+
         body {
-            background-color: #f8f9fa;
+            background-color: {{ $theme === 'dark' ? '#120016' : '#f8f9fa' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .navbar {
@@ -17,15 +23,48 @@
         }
 
         .card {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }};
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
         }
 
+        .card-header {
+            background-color: {{ $theme === 'dark' ? '#dc3545' : '#dc3545' }} !important;
+            border-bottom-color: {{ $theme === 'dark' ? '#3d3540' : '#dee2e6' }} !important;
+        }
+
+        .form-control {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : '#ced4da' }};
+        }
+
+        .form-control:focus {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : '#ffffff' }};
+            color: {{ $theme === 'dark' ? '#e9ecef' : '#212529' }};
+            border-color: #dc3545;
+        }
+
+        .form-label {
+            color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }};
+        }
+
         .text-danger-dark {
-            color: #842029;
+            color: {{ $theme === 'dark' ? '#f5c6cb' : '#842029' }};
         }
 
         .bg-danger-light {
-            background-color: #f8d7da;
+            background-color: {{ $theme === 'dark' ? '#3d1f22' : '#f8d7da' }};
+        }
+
+        .alert {
+            background-color: {{ $theme === 'dark' ? '#2a2429' : 'inherit' }};
+            border-color: {{ $theme === 'dark' ? '#3d3540' : 'inherit' }};
+        }
+
+        .text-muted {
+            color: {{ $theme === 'dark' ? '#adb5bd' : '#6c757d' }} !important;
         }
     </style>
 </head>
@@ -58,7 +97,10 @@
                             <h5 class="alert-heading">Warning!</h5>
                             <p class="mb-0">You are about to restore the database
                                 <strong>{{ $backup->database->database }}</strong> to the state from backup
-                                <strong>{{ $backup->created_at->format('Y-m-d H:i:s') }}</strong>.
+                                @php
+                                    $userTimezone = auth()->user()->timezone ?? 'UTC';
+                                    echo $backup->created_at->setTimezone($userTimezone)->format('Y-m-d H:i:s');
+                                @endphp.
                             </p>
                             <hr>
                             <p class="mb-0 text-danger-dark fw-bold">This will overwrite all current data in the
@@ -70,7 +112,12 @@
                             <ul class="list-unstyled">
                                 <li><strong>Filename:</strong> {{ $backup->filename }}</li>
                                 <li><strong>Size:</strong> {{ number_format($backup->file_size / 1024, 2) }} KB</li>
-                                <li><strong>Date:</strong> {{ $backup->completed_at?->format('F j, Y, g:i a') }}</li>
+                                <li><strong>Date:</strong> 
+                                    @php
+                                        $userTimezone = auth()->user()->timezone ?? 'UTC';
+                                        echo $backup->completed_at ? $backup->completed_at->setTimezone($userTimezone)->format('F j, Y, g:i a') : '-';
+                                    @endphp
+                                </li>
                             </ul>
                         </div>
 
