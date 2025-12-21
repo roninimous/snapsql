@@ -281,6 +281,7 @@ class DatabaseController extends Controller
             'username' => $data['username'],
             'password' => $data['password'] ?? '',
             'backup_frequency' => $data['backup_frequency'],
+            'backup_start_time' => $data['backup_start_time'],
             'custom_backup_interval_minutes' => $data['backup_frequency'] === 'custom' ? ($data['custom_backup_interval_minutes'] ?? null) : null,
             'sort_order' => $maxSortOrder + 1,
         ]);
@@ -509,6 +510,7 @@ class DatabaseController extends Controller
 
         $database->fill([
             'backup_frequency' => $data['backup_frequency'],
+            'backup_start_time' => $data['backup_start_time'],
             'custom_backup_interval_minutes' => $data['backup_frequency'] === 'custom' ? ($data['custom_backup_interval_minutes'] ?? null) : null,
         ])->save();
 

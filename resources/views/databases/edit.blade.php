@@ -200,6 +200,12 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div class="col-md-6">
+                                    <label for="backup_start_time" class="form-label">Start Time</label>
+                                    <input type="time" id="backup_start_time" name="backup_start_time" class="form-control" 
+                                        value="{{ old('backup_start_time', $database->backup_start_time ?? '00:00') }}" required>
+                                    <small class="text-muted">Time when backups should start (server timezone)</small>
+                                </div>
                                 <div class="col-md-6" id="custom_interval_container" style="display: none;">
                                     <label for="custom_backup_interval_minutes" class="form-label">Custom Interval
                                         (minutes)</label>

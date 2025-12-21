@@ -19,6 +19,7 @@ class Database extends Model
         'password',
         'is_active',
         'backup_frequency',
+        'backup_start_time',
         'custom_backup_interval_minutes',
         'sort_order',
     ];

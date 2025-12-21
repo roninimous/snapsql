@@ -30,7 +30,7 @@ class CheckBackupSchedule extends Command
     {
         $lock = Cache::lock('backup-schedule-check', 60);
 
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             $this->warn('Another backup schedule check is already running. Skipping...');
 
             return Command::SUCCESS;
@@ -44,7 +44,7 @@ class CheckBackupSchedule extends Command
             $dispatched = 0;
 
             foreach ($databases as $database) {
-                if ($this->isBackupDue($database) && !$this->hasBackupInProgress($database)) {
+                if ($this->isBackupDue($database) && ! $this->hasBackupInProgress($database)) {
                     CreateDatabaseBackup::dispatch($database);
                     $dispatched++;
                     $this->info("Dispatched backup job for database: {$database->name}");
@@ -73,23 +73,93 @@ class CheckBackupSchedule extends Command
             ->latest('started_at')
             ->first();
 
-        if (!$lastBackup) {
-            return true;
+        $userTimezone = $database->user->timezone ?? 'UTC';
+        $now = now()->setTimezone($userTimezone);
+
+        // Parse the backup start time (HH:MM format)
+        $startTime = $database->backup_start_time ?? '00:00:00';
+        [$hour, $minute] = explode(':', $startTime);
+
+        // Calculate the next scheduled backup time
+        $nextScheduledTime = $this->calculateNextScheduledTime($database, $lastBackup, $now, (int) $hour, (int) $minute);
+
+        if (! $nextScheduledTime) {
+            return false;
         }
 
-        $lastBackupTime = $lastBackup->started_at ?? $lastBackup->created_at;
+        // Check if we've passed the scheduled time (with 10-second buffer)
+        return $nextScheduledTime->isBefore($now->copy()->addSeconds(10));
+    }
 
-        // We subtract 10 seconds to account for slight timing variations in the scheduler
-        // so it triggers within the intended minute window.
-        $checkTime = now()->addSeconds(10);
+    /**
+     * Calculate the next scheduled backup time based on frequency and start time.
+     */
+    private function calculateNextScheduledTime(Database $database, $lastBackup, $now, int $hour, int $minute): ?\Carbon\Carbon
+    {
+        $userTimezone = $database->user->timezone ?? 'UTC';
+
+        // If no backup exists yet, schedule for the next occurrence of the start time
+        if (! $lastBackup) {
+            $nextTime = $now->copy()->setTime($hour, $minute, 0);
+
+            // If the time has passed today, schedule for the next period
+            if ($nextTime->isPast()) {
+                return match ($database->backup_frequency) {
+                    'hourly' => $now->copy()->setMinute($minute)->setSecond(0)->addHour(),
+                    'daily' => $nextTime->addDay(),
+                    'weekly' => $nextTime->addWeek(),
+                    'custom' => $this->calculateNextCustomTime($database, $now, $hour, $minute),
+                    default => null,
+                };
+            }
+
+            return $nextTime;
+        }
+
+        // Calculate next time based on last backup
+        $lastBackupTime = $lastBackup->started_at
+            ? $lastBackup->started_at->setTimezone($userTimezone)
+            : $lastBackup->created_at->setTimezone($userTimezone);
 
         return match ($database->backup_frequency) {
-            'hourly' => $lastBackupTime->copy()->addHour()->isBefore($checkTime),
-            'daily' => $lastBackupTime->copy()->addDay()->isBefore($checkTime),
-            'weekly' => $lastBackupTime->copy()->addWeek()->isBefore($checkTime),
-            'custom' => $this->isCustomBackupDue($database, $lastBackupTime, $checkTime),
-            default => false,
+            'hourly' => $lastBackupTime->copy()->addHour()->setMinute($minute)->setSecond(0),
+            'daily' => $lastBackupTime->copy()->addDay()->setTime($hour, $minute, 0),
+            'weekly' => $lastBackupTime->copy()->addWeek()->setTime($hour, $minute, 0),
+            'custom' => $this->calculateNextCustomTime($database, $lastBackupTime, $hour, $minute),
+            default => null,
         };
+    }
+
+    /**
+     * Calculate next custom backup time.
+     */
+    private function calculateNextCustomTime(Database $database, $fromTime, int $hour, int $minute): ?\Carbon\Carbon
+    {
+        if (! $database->custom_backup_interval_minutes || $database->custom_backup_interval_minutes < 1) {
+            return null;
+        }
+
+        $intervalMinutes = $database->custom_backup_interval_minutes;
+        $userTimezone = $database->user->timezone ?? 'UTC';
+
+        // Start from the configured start time today
+        $startOfPeriod = $fromTime->copy()->setTime($hour, $minute, 0);
+
+        // If we're calculating from "now" and haven't started yet
+        if (! $database->backups()->whereIn('status', ['completed', 'failed'])->exists()) {
+            if ($startOfPeriod->isPast()) {
+                // Calculate how many intervals have passed since start time
+                $minutesSinceStart = $fromTime->diffInMinutes($startOfPeriod);
+                $intervalsPassed = ceil($minutesSinceStart / $intervalMinutes);
+
+                return $startOfPeriod->addMinutes($intervalsPassed * $intervalMinutes);
+            }
+
+            return $startOfPeriod;
+        }
+
+        // Add the interval to the last backup time
+        return $fromTime->copy()->addMinutes($intervalMinutes);
     }
 
     /**
@@ -100,17 +170,5 @@ class CheckBackupSchedule extends Command
         return $database->backups()
             ->whereIn('status', ['pending', 'processing'])
             ->exists();
-    }
-
-    /**
-     * Check if a custom backup is due based on the interval in minutes.
-     */
-    private function isCustomBackupDue(Database $database, $lastBackupTime, $checkTime): bool
-    {
-        if (!$database->custom_backup_interval_minutes || $database->custom_backup_interval_minutes < 1) {
-            return false;
-        }
-
-        return $lastBackupTime->copy()->addMinutes($database->custom_backup_interval_minutes)->isBefore($checkTime);
     }
 }
