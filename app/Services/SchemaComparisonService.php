@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Database;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PDO;
@@ -13,8 +12,6 @@ class SchemaComparisonService
     /**
      * Compare the current database schema with the backup file schema.
      *
-     * @param Database $database
-     * @param string $backupPath
      * @return array{compatible: bool, errors: array<string>}
      */
     public function compare(Database $database, string $backupPath): array
@@ -27,7 +24,7 @@ class SchemaComparisonService
         } catch (\Exception $e) {
             return [
                 'compatible' => false,
-                'errors' => ['Failed to compare schemas: ' . $e->getMessage()],
+                'errors' => ['Failed to compare schemas: '.$e->getMessage()],
             ];
         }
     }
@@ -45,6 +42,7 @@ class SchemaComparisonService
         $pdo = new PDO($dsn, $database->username, $database->password ?? '', [
             PDO::ATTR_TIMEOUT => 5,
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
         ]);
 
         $tables = [];
@@ -69,12 +67,12 @@ class SchemaComparisonService
 
     private function getBackupSchema(string $backupPath): array
     {
-        if (!Storage::disk('local')->exists($backupPath)) {
+        if (! Storage::disk('local')->exists($backupPath)) {
             throw new \RuntimeException("Backup file not found at {$backupPath}");
         }
 
-        // We can't read entire file into memory for large backups, 
-        // but schema is usually at the top or scattered. 
+        // We can't read entire file into memory for large backups,
+        // but schema is usually at the top or scattered.
         // We iterate line by line.
 
         $stream = Storage::disk('local')->readStream($backupPath);
@@ -88,12 +86,14 @@ class SchemaComparisonService
             if (preg_match('/^CREATE TABLE `([^`]+)`/i', $line, $matches)) {
                 $currentTable = $matches[1];
                 $tables[$currentTable] = [];
+
                 continue;
             }
 
             // Detect End of Table
             if ($currentTable && (str_starts_with($line, ') ENGINE=') || str_starts_with($line, ');'))) {
                 $currentTable = null;
+
                 continue;
             }
 
@@ -133,6 +133,7 @@ class SchemaComparisonService
         }
 
         fclose($stream);
+
         return $tables;
     }
 
@@ -144,7 +145,7 @@ class SchemaComparisonService
         // If we restore, we drop active tables usually (mysqldump has DROP TABLE IF EXISTS).
         // If backup DOESN'T have the table, and mysqldump DOESN'T drop it... then it stays?
         // mysqldump usually only drops tables it is about to create.
-        // So valid tables in Live might persist? 
+        // So valid tables in Live might persist?
         // BUT if the App expects them, and they persist, it's fine.
         // wait, if backup is OLD, it might NOT have a new table.
         // If we restore, that table remains untouched (if dump doesn't drop it).
@@ -154,15 +155,17 @@ class SchemaComparisonService
         // Let's flag MISSING TABLES as a warning/error because the App might rely on consistent state between tables.
 
         foreach ($liveSchema as $tableName => $columns) {
-            if (!isset($backupSchema[$tableName])) {
+            if (! isset($backupSchema[$tableName])) {
                 $errors[] = "Table `{$tableName}` exists in current database but is missing in the backup.";
+
                 continue;
             }
 
             // 2. Check for Missing Columns or Type Mismatch
             foreach ($columns as $colName => $colType) {
-                if (!isset($backupSchema[$tableName][$colName])) {
+                if (! isset($backupSchema[$tableName][$colName])) {
                     $errors[] = "Column `{$tableName}.{$colName}` is missing in the backup.";
+
                     continue;
                 }
 
@@ -174,7 +177,7 @@ class SchemaComparisonService
                 $backupBase = preg_replace('/\s*\(.*\)/', '', $backupType);
 
                 if ($liveBase !== $backupBase) {
-                    // Allow some compatibility? e.g. text vs longtext? 
+                    // Allow some compatibility? e.g. text vs longtext?
                     // For now, strict.
                     $errors[] = "Column `{$tableName}.{$colName}` type mismatch: Current is '{$colType}', Backup is '{$backupType}'.";
                 }
