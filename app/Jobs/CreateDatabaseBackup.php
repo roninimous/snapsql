@@ -105,7 +105,6 @@ class CreateDatabaseBackup implements ShouldQueue
             '--skip-events',
             '--add-drop-table',
             '--no-tablespaces',
-            '--ssl-mode=PREFERRED',
             '--host='.$this->database->host,
             '--port='.$this->database->port,
             '--user='.$this->database->username,
