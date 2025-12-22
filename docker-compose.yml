@@ -5,8 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: snapsql-app
     restart: unless-stopped
-    ports:
-      - "8088:80"
+    network_mode: host
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
@@ -24,9 +23,3 @@ services:
       - ./bootstrap/cache:/var/www/html/bootstrap/cache
       - ./.env:/var/www/html/.env
       - ./database:/var/www/html/database
-    networks:
-      - snapsql-network
-
-networks:
-  snapsql-network:
-    driver: bridge

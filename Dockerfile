@@ -23,8 +23,11 @@ RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
 # Enable Apache modules
 RUN a2enmod rewrite headers
 
+# Configure Apache to listen on port 8088
+RUN echo 'Listen 8088' > /etc/apache2/ports.conf
+
 # Copy Apache configuration
-RUN echo '<VirtualHost *:80>\n\
+RUN echo '<VirtualHost *:8088>\n\
     DocumentRoot /var/www/html/public\n\
     <Directory /var/www/html/public>\n\
         AllowOverride All\n\
@@ -56,7 +59,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose port
-EXPOSE 80
+EXPOSE 8088
 
 # Set entrypoint
 ENTRYPOINT ["docker-entrypoint.sh"]
