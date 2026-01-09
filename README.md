@@ -26,6 +26,11 @@ A robust, self-hosted database backup and restore manager built with Laravel. Sn
 curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install.sh | sudo bash
 ```
 
+### [APPLE] macOS
+```bash
+curl -fsSL https://raw.githubusercontent.com/roninimous/snapsql/main/install_mac.sh | bash
+```
+
 ### [WIN] Windows (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
