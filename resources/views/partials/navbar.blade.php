@@ -70,3 +70,12 @@
         </div>
     </div>
 </nav>
+<script>
+    // Sync server-side theme preference with client-side localStorage
+    (function() {
+        const theme = '{{ $theme }}';
+        if (theme) {
+            localStorage.setItem('theme', theme);
+        }
+    })();
+</script>
