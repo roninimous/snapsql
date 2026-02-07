@@ -222,7 +222,7 @@
                                     </svg>
                                     How to Update
                                 </div>
-                                <p class="text-muted small mb-3">Run these commands in your SnapsQL directory:</p>
+                                <p class="text-muted small mb-3">Run these commands in your SnapsQL directory. <strong>Linux users:</strong> You may need to add <code>sudo</code> before each command.</p>
                                 <div class="commands-box">
                                     <button class="copy-btn" id="copy-commands-btn">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
