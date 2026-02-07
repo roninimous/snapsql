@@ -111,7 +111,8 @@ class CheckUpdateController extends Controller
 
     private function checkLatestCommits(): array
     {
-        $cacheKey = 'github_latest_commits';
+        // Include commit SHA in cache key so it invalidates after updates
+        $cacheKey = 'github_latest_commits_' . $this->currentCommitSha;
 
         return Cache::remember($cacheKey, now()->addMinutes(5), function () {
             // First, get the latest commit on main branch
