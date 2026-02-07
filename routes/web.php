@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CheckUpdateController;
 use App\Http\Controllers\DatabaseController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
@@ -56,9 +57,8 @@ Route::middleware('auth')->group(function () {
     // Settings Routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
-    Route::get('/check-update', function () {
-        return view('check-update');
-    })->name('check-update');
+    Route::get('/check-update', [CheckUpdateController::class, 'index'])->name('check-update');
+    Route::post('/check-update', [CheckUpdateController::class, 'check'])->name('check-update.check');
     Route::get('/about', function () {
         return view('about');
     })->name('about');

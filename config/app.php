@@ -4,6 +4,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | This value is the current version of the application. It is used for
+    | update checking and display purposes.
+    |
+    */
+
+    'version' => env('APP_VERSION', '1.0.0'),
+
+    'commit_sha' => env('APP_COMMIT_SHA', '03f7c91'),
+
+    'github_repo' => env('GITHUB_REPO', 'roninimous/snapsql'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Name
     |--------------------------------------------------------------------------
     |
