@@ -62,19 +62,21 @@ class CreateDatabaseBackup implements ShouldQueue
                 'completed_at' => now(),
             ]);
         } catch (\Exception $e) {
+            $sanitizedError = $this->sanitizeErrorMessage($e->getMessage());
+
             Log::error('Database backup failed', [
                 'database_id' => $this->database->id,
-                'error' => $e->getMessage(),
+                'error' => $sanitizedError,
                 'trace' => $e->getTraceAsString(),
             ]);
 
             $backup->update([
                 'status' => 'failed',
                 'completed_at' => now(),
-                'error_message' => $e->getMessage(),
+                'error_message' => $sanitizedError,
             ]);
 
-            $this->sendFailureNotification($e->getMessage());
+            $this->sendFailureNotification($sanitizedError);
         } finally {
             if ($tempFile && File::exists($tempFile)) {
                 File::delete($tempFile);
@@ -274,6 +276,40 @@ class CreateDatabaseBackup implements ShouldQueue
                 ]);
             }
         }
+    }
+
+    /**
+     * Sanitize error message to remove sensitive information.
+     */
+    private function sanitizeErrorMessage(string $errorMessage): string
+    {
+        // Patterns to sanitize (both quoted and unquoted formats)
+        $patterns = [
+            "/--password='[^']*'/" => "--password='***'",
+            '/--password=[^\s\'\"]+/' => '--password=***',
+            "/--host='[^']*'/" => "--host='***'",
+            '/--host=[^\s\'\"]+/' => '--host=***',
+            "/--user='[^']*'/" => "--user='***'",
+            '/--user=[^\s\'\"]+/' => '--user=***',
+        ];
+
+        $sanitized = $errorMessage;
+        foreach ($patterns as $pattern => $replacement) {
+            $sanitized = preg_replace($pattern, $replacement, $sanitized);
+        }
+
+        // Also mask the actual sensitive values if they appear elsewhere in the message
+        $sensitiveValues = array_filter([
+            $this->database->password,
+            $this->database->host,
+            $this->database->username,
+        ]);
+
+        foreach ($sensitiveValues as $value) {
+            $sanitized = str_replace($value, '***', $sanitized);
+        }
+
+        return $sanitized;
     }
 
     /**
