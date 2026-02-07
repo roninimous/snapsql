@@ -233,7 +233,7 @@
                                     </button>
                                     <code>docker-compose down</code>
                                     <code>git pull</code>
-                                    <code>COMMIT_SHA=$(git rev-parse --short HEAD) docker-compose up -d --build</code>
+                                    <code>docker-compose up -d --build</code>
                                     <code>docker-compose exec app php artisan migrate --force</code>
                                 </div>
                                 <p class="text-muted small mt-3 mb-0">After updating, refresh this page to verify the new version.</p>
@@ -267,7 +267,7 @@
 
             const updateCommands = `docker-compose down
 git pull
-COMMIT_SHA=$(git rev-parse --short HEAD) docker-compose up -d --build
+docker-compose up -d --build
 docker-compose exec app php artisan migrate --force`;
 
             // Copy commands functionality
