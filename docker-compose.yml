@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        COMMIT_SHA: ${COMMIT_SHA:-unknown}
     container_name: snapsql-app
     restart: unless-stopped
     ports:

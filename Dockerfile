@@ -1,5 +1,8 @@
 FROM php:8.3-apache
 
+# Build arguments
+ARG COMMIT_SHA=unknown
+
 # Set working directory
 WORKDIR /var/www/html
 
@@ -39,6 +42,9 @@ RUN echo '<VirtualHost *:8088>\n\
 
 # Copy application files
 COPY . /var/www/html
+
+# Write commit SHA to file for version checking
+RUN echo "${COMMIT_SHA}" > /var/www/html/COMMIT_SHA
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

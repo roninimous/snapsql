@@ -25,6 +25,16 @@ class CheckUpdateController extends Controller
 
     private function getGitCommitSha(): string
     {
+        // First try reading from COMMIT_SHA file (Docker builds)
+        $commitFile = base_path('COMMIT_SHA');
+        if (file_exists($commitFile)) {
+            $sha = trim(file_get_contents($commitFile));
+            if ($sha && $sha !== 'unknown') {
+                return $sha;
+            }
+        }
+
+        // Fall back to git command (local development)
         try {
             $result = Process::path(base_path())->run(['git', 'rev-parse', '--short', 'HEAD']);
 
