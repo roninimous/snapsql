@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 
 class CheckUpdateController extends Controller
 {
@@ -19,7 +20,22 @@ class CheckUpdateController extends Controller
     {
         $this->githubRepo = config('app.github_repo');
         $this->currentVersion = config('app.version');
-        $this->currentCommitSha = config('app.commit_sha');
+        $this->currentCommitSha = $this->getGitCommitSha();
+    }
+
+    private function getGitCommitSha(): string
+    {
+        try {
+            $result = Process::path(base_path())->run(['git', 'rev-parse', '--short', 'HEAD']);
+
+            if ($result->successful()) {
+                return trim($result->output());
+            }
+        } catch (\Exception $e) {
+            // Ignore errors, fall back to config
+        }
+
+        return config('app.commit_sha', 'unknown');
     }
 
     public function index()
