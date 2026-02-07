@@ -111,6 +111,46 @@
         a:hover {
             color: {{ $theme === 'dark' ? '#c4b5fd' : '#5a2d6a' }};
         }
+
+        .commands-box {
+            background-color: {{ $theme === 'dark' ? '#120016' : '#1e1e1e' }};
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #e9ecef;
+            position: relative;
+        }
+
+        .commands-box code {
+            color: #e9ecef;
+            display: block;
+            line-height: 1.8;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: {{ $theme === 'dark' ? '#3d3540' : '#6c757d' }};
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .copy-btn:hover {
+            background-color: {{ $theme === 'dark' ? '#5a4d5f' : '#5a6268' }};
+        }
+
+        .copy-btn.copied {
+            background-color: #198754;
+        }
     </style>
 </head>
 
@@ -172,6 +212,32 @@
                                 </div>
                                 <div id="commits-content"></div>
                             </div>
+
+                            <!-- How to Update Section -->
+                            <div class="update-section d-none" id="update-instructions-section">
+                                <div class="update-section-title">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+                                    </svg>
+                                    How to Update
+                                </div>
+                                <p class="text-muted small mb-3">Run these commands in your SnapsQL directory:</p>
+                                <div class="commands-box">
+                                    <button class="copy-btn" id="copy-commands-btn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                                            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                                        </svg>
+                                        <span>Copy</span>
+                                    </button>
+                                    <code>docker-compose down</code>
+                                    <code>git pull</code>
+                                    <code>docker-compose up -d --build</code>
+                                    <code>docker exec -it snapsql php artisan migrate --force</code>
+                                </div>
+                                <p class="text-muted small mt-3 mb-0">After updating, refresh this page to verify the new version.</p>
+                            </div>
                         </div>
 
                         <hr>
@@ -196,6 +262,40 @@
             const errorMessage = document.getElementById('error-message');
             const releaseContent = document.getElementById('release-content');
             const commitsContent = document.getElementById('commits-content');
+            const updateInstructions = document.getElementById('update-instructions-section');
+            const copyBtn = document.getElementById('copy-commands-btn');
+
+            const updateCommands = `docker-compose down
+git pull
+docker-compose up -d --build
+docker exec -it snapsql php artisan migrate --force`;
+
+            // Copy commands functionality
+            copyBtn.addEventListener('click', async function () {
+                try {
+                    await navigator.clipboard.writeText(updateCommands);
+                    copyBtn.classList.add('copied');
+                    copyBtn.querySelector('span').textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.querySelector('span').textContent = 'Copy';
+                    }, 2000);
+                } catch (err) {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = updateCommands;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    copyBtn.classList.add('copied');
+                    copyBtn.querySelector('span').textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.querySelector('span').textContent = 'Copy';
+                    }, 2000);
+                }
+            });
 
             checkBtn.addEventListener('click', async function () {
                 checkBtn.disabled = true;
@@ -203,6 +303,7 @@
                 checkSpinner.classList.remove('d-none');
                 updateResults.classList.add('d-none');
                 errorResult.classList.add('d-none');
+                updateInstructions.classList.add('d-none');
 
                 try {
                     const response = await fetch('{{ route("check-update.check") }}', {
@@ -225,6 +326,13 @@
 
                     // Render commits section
                     renderCommitsSection(data.commits);
+
+                    // Show update instructions if there are updates available
+                    const hasReleaseUpdate = data.release.available === true;
+                    const hasCommitUpdate = !data.commits.up_to_date;
+                    if (hasReleaseUpdate || hasCommitUpdate) {
+                        updateInstructions.classList.remove('d-none');
+                    }
 
                     updateResults.classList.remove('d-none');
                 } catch (error) {
