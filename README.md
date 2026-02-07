@@ -2,7 +2,7 @@
 
 A robust, self-hosted database backup and restore manager built with Laravel. SnapsQL automates your database backups, provides distinct restore safety checks, and integrates with Discord for real-time notifications.
 
-![SnapsQL Dashboard](public/logo-square-transparent.png)
+![SnapsQL Dashboard](SnapSQL%20Dashboard.png)
 
 ## Features
 
@@ -102,6 +102,30 @@ irm https://raw.githubusercontent.com/roninimous/snapsql/main/install.ps1 | iex
     ```
     *Note: Database migrations will run automatically on startup.*
 4.  Visit `http://localhost:8088`.
+
+## Connecting to Remote Databases
+
+If SnapsQL is not hosted on the same server as your database, you can use [Tailscale](https://tailscale.com/) to securely connect to your remote databases.
+
+1. Install Tailscale on both the SnapsQL server and your database server
+2. Use the Tailscale IP address (e.g., `100.x.x.x`) as the database host in SnapsQL
+3. Ensure your database allows connections from the Tailscale network
+
+This provides a secure, encrypted connection without exposing your database to the public internet.
+
+> **Important**: Make sure your database user is configured for remote access. By default, MySQL users are often created with `localhost` only. To allow remote connections:
+> ```sql
+> CREATE USER 'snapsql'@'%' IDENTIFIED BY 'your_password';
+> GRANT ALL PRIVILEGES ON your_database.* TO 'snapsql'@'%';
+> FLUSH PRIVILEGES;
+> ```
+> Replace `'%'` with your Tailscale IP (e.g., `'100.x.x.x'`) for better security.
+
+> **Note**: You may also need to update your MySQL/MariaDB bind address. Edit your config file (e.g., `/etc/mysql/mysql.conf.d/mysqld.cnf` or `/etc/mysql/mariadb.conf.d/50-server.cnf`):
+> ```ini
+> bind-address = 0.0.0.0
+> ```
+> Then restart the database service. For better security, use your Tailscale IP instead of `0.0.0.0`.
 
 ## Backup Flow
 
