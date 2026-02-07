@@ -234,7 +234,7 @@
                                     <code>docker-compose down</code>
                                     <code>git pull</code>
                                     <code>docker-compose up -d --build</code>
-                                    <code>docker exec -it snapsql php artisan migrate --force</code>
+                                    <code>docker-compose exec app php artisan migrate --force</code>
                                 </div>
                                 <p class="text-muted small mt-3 mb-0">After updating, refresh this page to verify the new version.</p>
                             </div>
@@ -268,7 +268,7 @@
             const updateCommands = `docker-compose down
 git pull
 docker-compose up -d --build
-docker exec -it snapsql php artisan migrate --force`;
+docker-compose exec app php artisan migrate --force`;
 
             // Copy commands functionality
             copyBtn.addEventListener('click', async function () {
