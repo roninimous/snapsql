@@ -56,10 +56,9 @@ RUN echo "${COMMIT_SHA}" > /var/www/html/COMMIT_SHA
 # Run post-install scripts now that full app is present
 RUN composer run-script post-autoload-dump --no-interaction 2>/dev/null || true
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 777 /var/www/html/storage \
-    && chmod -R 777 /var/www/html/bootstrap/cache
+# Set permissions (only target writable dirs, not the whole app)
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
