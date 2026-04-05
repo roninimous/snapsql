@@ -127,6 +127,21 @@ This provides a secure, encrypted connection without exposing your database to t
 > ```
 > Then restart the database service. For better security, use your Tailscale IP instead of `0.0.0.0`.
 
+## How to Update
+
+Run the following commands in your SnapsQL directory:
+
+```bash
+docker-compose down
+git pull
+docker-compose up -d --build
+docker-compose exec app php artisan migrate --force
+```
+
+> **Linux users**: You may need to prefix commands with `sudo`.
+
+After updating, refresh the app and verify the new version under **Settings > About**.
+
 ## Backup Flow
 
 1.  **Create Schedule**: Go to the dashboard and click "Create DB Snapshot Schedule".
