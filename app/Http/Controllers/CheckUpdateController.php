@@ -60,7 +60,7 @@ class CheckUpdateController extends Controller
     {
         try {
             $releaseData = $this->checkLatestRelease();
-            $commitsData = $this->checkLatestCommits();
+            $betaData = $this->checkBetaRelease();
 
             return response()->json([
                 'success' => true,
@@ -69,7 +69,7 @@ class CheckUpdateController extends Controller
                     'commit_sha' => $this->currentCommitSha,
                 ],
                 'release' => $releaseData,
-                'commits' => $commitsData,
+                'beta' => $betaData,
             ]);
         } catch (\Exception $e) {
             Log::error('Update check failed', [
@@ -119,101 +119,44 @@ class CheckUpdateController extends Controller
         });
     }
 
-    private function checkLatestCommits(): array
+    private function checkBetaRelease(): array
     {
-        // Include commit SHA in cache key so it invalidates after updates
-        $cacheKey = 'github_latest_commits_' . $this->currentCommitSha;
+        $cacheKey = 'github_beta_release';
 
         return Cache::remember($cacheKey, now()->addMinutes(5), function () {
-            // First, get the latest commit on main branch
-            $latestResponse = Http::withHeaders([
+            $response = Http::withHeaders([
                 'Accept' => 'application/vnd.github.v3+json',
                 'User-Agent' => 'SnapsQL-Update-Checker',
-            ])->get("https://api.github.com/repos/{$this->githubRepo}/commits/main");
+            ])->get("https://api.github.com/repos/{$this->githubRepo}/releases", [
+                'per_page' => 10,
+            ]);
 
-            if (! $latestResponse->successful()) {
-                throw new \RuntimeException('Failed to fetch commit info from GitHub');
+            if (! $response->successful()) {
+                throw new \RuntimeException('Failed to fetch releases from GitHub');
             }
 
-            $latestCommit = $latestResponse->json();
-            $latestSha = substr($latestCommit['sha'], 0, 7);
+            $releases = $response->json();
+            $betaRelease = collect($releases)->first(fn ($r) => $r['prerelease'] === true);
 
-            // Check if we're on the latest commit
-            if ($latestSha === $this->currentCommitSha) {
+            if (! $betaRelease) {
                 return [
-                    'up_to_date' => true,
-                    'current_sha' => $this->currentCommitSha,
-                    'latest_sha' => $latestSha,
-                    'ahead_by' => 0,
-                    'commits' => [],
+                    'available' => false,
+                    'message' => 'No beta releases found',
                 ];
             }
 
-            // Get comparison between current commit and main
-            $compareResponse = Http::withHeaders([
-                'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'SnapsQL-Update-Checker',
-            ])->get("https://api.github.com/repos/{$this->githubRepo}/compare/{$this->currentCommitSha}...main");
-
-            if (! $compareResponse->successful()) {
-                // If comparison fails (commit not found), just show latest commits
-                $commitsResponse = Http::withHeaders([
-                    'Accept' => 'application/vnd.github.v3+json',
-                    'User-Agent' => 'SnapsQL-Update-Checker',
-                ])->get("https://api.github.com/repos/{$this->githubRepo}/commits", [
-                    'per_page' => 10,
-                ]);
-
-                if (! $commitsResponse->successful()) {
-                    throw new \RuntimeException('Failed to fetch commits from GitHub');
-                }
-
-                $commits = collect($commitsResponse->json())->map(function ($commit) {
-                    return [
-                        'sha' => substr($commit['sha'], 0, 7),
-                        'message' => $this->getFirstLine($commit['commit']['message']),
-                        'date' => $commit['commit']['author']['date'],
-                        'html_url' => $commit['html_url'],
-                    ];
-                })->take(10)->toArray();
-
-                return [
-                    'up_to_date' => false,
-                    'current_sha' => $this->currentCommitSha,
-                    'latest_sha' => $latestSha,
-                    'ahead_by' => null,
-                    'commits' => $commits,
-                    'compare_url' => "https://github.com/{$this->githubRepo}/commits/main",
-                ];
-            }
-
-            $compareData = $compareResponse->json();
-            $aheadBy = $compareData['ahead_by'] ?? 0;
-
-            $commits = collect($compareData['commits'] ?? [])->reverse()->map(function ($commit) {
-                return [
-                    'sha' => substr($commit['sha'], 0, 7),
-                    'message' => $this->getFirstLine($commit['commit']['message']),
-                    'date' => $commit['commit']['author']['date'],
-                    'html_url' => $commit['html_url'],
-                ];
-            })->take(10)->toArray();
+            $latestVersion = ltrim($betaRelease['tag_name'] ?? '', 'v');
 
             return [
-                'up_to_date' => $aheadBy === 0,
-                'current_sha' => $this->currentCommitSha,
-                'latest_sha' => $latestSha,
-                'ahead_by' => $aheadBy,
-                'commits' => $commits,
-                'compare_url' => $compareData['html_url'] ?? "https://github.com/{$this->githubRepo}/compare/{$this->currentCommitSha}...main",
+                'available' => version_compare($latestVersion, $this->currentVersion, '>'),
+                'latest_version' => $latestVersion,
+                'tag_name' => $betaRelease['tag_name'],
+                'name' => $betaRelease['name'] ?? $betaRelease['tag_name'],
+                'body' => $betaRelease['body'] ?? '',
+                'html_url' => $betaRelease['html_url'],
+                'published_at' => $betaRelease['published_at'],
             ];
         });
     }
 
-    private function getFirstLine(string $message): string
-    {
-        $lines = explode("\n", $message);
-
-        return trim($lines[0]);
-    }
 }
