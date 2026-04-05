@@ -60,7 +60,6 @@ class CheckUpdateController extends Controller
     {
         try {
             $releaseData = $this->checkLatestRelease();
-            $betaData = $this->checkBetaRelease();
 
             return response()->json([
                 'success' => true,
@@ -69,7 +68,6 @@ class CheckUpdateController extends Controller
                     'commit_sha' => $this->currentCommitSha,
                 ],
                 'release' => $releaseData,
-                'beta' => $betaData,
             ]);
         } catch (\Exception $e) {
             Log::error('Update check failed', [
@@ -115,46 +113,6 @@ class CheckUpdateController extends Controller
                 'body' => $data['body'] ?? '',
                 'html_url' => $data['html_url'],
                 'published_at' => $data['published_at'],
-            ];
-        });
-    }
-
-    private function checkBetaRelease(): array
-    {
-        $cacheKey = 'github_beta_release';
-
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () {
-            $response = Http::withHeaders([
-                'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'SnapsQL-Update-Checker',
-            ])->get("https://api.github.com/repos/{$this->githubRepo}/releases", [
-                'per_page' => 10,
-            ]);
-
-            if (! $response->successful()) {
-                throw new \RuntimeException('Failed to fetch releases from GitHub');
-            }
-
-            $releases = $response->json();
-            $betaRelease = collect($releases)->first(fn ($r) => $r['prerelease'] === true);
-
-            if (! $betaRelease) {
-                return [
-                    'available' => false,
-                    'message' => 'No beta releases found',
-                ];
-            }
-
-            $latestVersion = ltrim($betaRelease['tag_name'] ?? '', 'v');
-
-            return [
-                'available' => version_compare($latestVersion, $this->currentVersion, '>'),
-                'latest_version' => $latestVersion,
-                'tag_name' => $betaRelease['tag_name'],
-                'name' => $betaRelease['name'] ?? $betaRelease['tag_name'],
-                'body' => $betaRelease['body'] ?? '',
-                'html_url' => $betaRelease['html_url'],
-                'published_at' => $betaRelease['published_at'],
             ];
         });
     }

@@ -68,7 +68,7 @@
                             <h6 class="mb-3">Application Information</h6>
                             <div class="mb-3">
                                 <label class="form-label text-muted">Version</label>
-                                <p class="fw-semibold">{{ config('app.version', '1.0.0') }} <span class="text-muted small">({{ config('app.commit_sha', 'unknown') }})</span></p>
+                                <p class="fw-semibold">{{ config('app.version', '1.0.0') }}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-muted">License</label>

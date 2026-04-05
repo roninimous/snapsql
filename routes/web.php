@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
 
     // Account Routes
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::put('/account/profile', [AccountController::class, 'updateProfile'])->name('profile.update');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('password.update');
 
     // Notification Routes

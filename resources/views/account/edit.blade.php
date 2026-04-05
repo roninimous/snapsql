@@ -63,14 +63,42 @@
                         <h5 class="mb-0">Account Information</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-4">
-                            <label class="form-label text-muted">Name</label>
-                            <p class="fw-semibold">{{ $user->name }}</p>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label text-muted">Email</label>
-                            <p class="fw-semibold">{{ $user->email }}</p>
-                        </div>
+                        <h5 class="mb-3">Profile Information</h5>
+
+                        @if (session('status') === 'profile-updated')
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                Profile updated successfully.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        @endif
+
+                        <form method="POST" action="{{ route('profile.update') }}">
+                            @csrf
+                            @method('PUT')
+
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control @error('name', 'updateProfile') is-invalid @enderror"
+                                    id="name" name="name" value="{{ old('name', $user->name) }}" required>
+                                @error('name', 'updateProfile')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control @error('email', 'updateProfile') is-invalid @enderror"
+                                    id="email" name="email" value="{{ old('email', $user->email) }}" required>
+                                @error('email', 'updateProfile')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary"
+                                    style="background-color: #331540; border-color: #331540;">Save Profile</button>
+                            </div>
+                        </form>
 
                         <hr>
 

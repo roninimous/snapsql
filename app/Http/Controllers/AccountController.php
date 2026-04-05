@@ -16,6 +16,18 @@ class AccountController extends Controller
         ]);
     }
 
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $validated = $request->validateWithBag('updateProfile', [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $request->user()->id],
+        ]);
+
+        $request->user()->update($validated);
+
+        return back()->with('status', 'profile-updated');
+    }
+
     public function updatePassword(Request $request): RedirectResponse
     {
         $validated = $request->validateWithBag('updatePassword', [

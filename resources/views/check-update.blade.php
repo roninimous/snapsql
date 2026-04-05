@@ -179,12 +179,6 @@
                                 <div id="release-content"></div>
                             </div>
 
-                            <!-- Beta Release Section -->
-                            <div class="update-section d-none" id="beta-section">
-                                <div class="update-section-title">Beta Release</div>
-                                <div id="beta-content"></div>
-                            </div>
-
                             <!-- How to Update Section -->
                             <div class="update-section d-none" id="update-instructions-section">
                                 <div class="update-section-title">How to Update</div>
@@ -225,8 +219,6 @@
             const upToDateSection = document.getElementById('up-to-date-section');
             const releaseSection = document.getElementById('release-section');
             const releaseContent = document.getElementById('release-content');
-            const betaSection = document.getElementById('beta-section');
-            const betaContent = document.getElementById('beta-content');
             const updateInstructions = document.getElementById('update-instructions-section');
             const copyBtn = document.getElementById('copy-commands-btn');
 
@@ -275,25 +267,16 @@
                     }
 
                     const hasReleaseUpdate = data.release.available === true;
-                    const hasBetaUpdate = data.beta && data.beta.available === true;
 
-                    // Hide all sections first
                     upToDateSection.classList.add('d-none');
                     releaseSection.classList.add('d-none');
-                    betaSection.classList.add('d-none');
                     updateInstructions.classList.add('d-none');
 
-                    if (!hasReleaseUpdate && !hasBetaUpdate) {
+                    if (!hasReleaseUpdate) {
                         upToDateSection.classList.remove('d-none');
                     } else {
-                        if (hasReleaseUpdate) {
-                            releaseContent.innerHTML = renderRelease(data.release);
-                            releaseSection.classList.remove('d-none');
-                        }
-                        if (hasBetaUpdate) {
-                            betaContent.innerHTML = renderRelease(data.beta, true);
-                            betaSection.classList.remove('d-none');
-                        }
+                        releaseContent.innerHTML = renderRelease(data.release);
+                        releaseSection.classList.remove('d-none');
                         updateInstructions.classList.remove('d-none');
                     }
 
@@ -308,16 +291,14 @@
                 }
             });
 
-            function renderRelease(release, isBeta = false) {
+            function renderRelease(release) {
                 const publishedDate = new Date(release.published_at).toLocaleDateString('en-US', {
                     year: 'numeric', month: 'short', day: 'numeric'
                 });
-                const badgeLabel = isBeta ? 'Beta Available' : 'Update Available';
-                const badgeColor = isBeta ? '#e67e22' : '#198754';
                 const body = release.body ? `<div class="mb-3 small" style="white-space: pre-line;">${escapeHtml(release.body.substring(0, 500))}${release.body.length > 500 ? '...' : ''}</div>` : '';
                 return `
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge" style="background-color:${badgeColor};color:white;">${badgeLabel}</span>
+                        <span class="badge badge-update">Update Available</span>
                         <span class="version-info">${release.tag_name}</span>
                     </div>
                     <p class="mb-2"><strong>${release.name}</strong></p>

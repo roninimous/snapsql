@@ -40,17 +40,21 @@ RUN echo '<VirtualHost *:8088>\n\
     CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install dependencies first (cached unless composer.json/lock changes)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
 # Copy application files
 COPY . /var/www/html
 
 # Write commit SHA to file for version checking
 RUN echo "${COMMIT_SHA}" > /var/www/html/COMMIT_SHA
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Install application dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Run post-install scripts now that full app is present
+RUN composer run-script post-autoload-dump --no-interaction 2>/dev/null || true
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
